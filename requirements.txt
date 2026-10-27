@@ -1,0 +1,2 @@
+# Only the Streamlit placeholder is implemented in this scaffold.
+streamlit>=1.40,<2.0
