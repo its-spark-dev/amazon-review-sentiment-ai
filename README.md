@@ -15,7 +15,7 @@ modern NLP model.
 ## Team
 
 | Confirmed member | Primary role |
-| --- | --- |
+| Zachary Funk | Project Lead |
 | Sang Park | ML Engineer |
 | Jacob Myers | App Engineer |
 | Yash Amin | Analyst / Writer |
