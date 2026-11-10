@@ -2,7 +2,7 @@
 
 Sentiment analysis of the Amazon Fine Food Reviews dataset for **The Ohio State University, CSE 3521, Autumn 2026 Flagship Group Project**. The project will compare feature representations and classical machine learning approaches with a deep or modern NLP approach, and present the work through Streamlit Community Cloud.
 
-**Current status: repository scaffold only.** The Streamlit app displays a placeholder page. Data processing, training, evaluation, and model inference are not implemented. No dataset, trained model, or experimental results are included.
+**Current status: scaffold plus a dataset-independent ML baseline module.** The Streamlit app displays a placeholder page. The [ML baseline guide](docs/ML_BASELINE.md) documents rating labels, BoW/TF-IDF features, a Multinomial Naive Bayes pipeline, evaluation, and synthetic tests. Real-data processing, training, evaluation, and application inference are not implemented. No dataset, trained model, or experimental results are included.
 
 ## Project requirements
 
@@ -16,7 +16,7 @@ The course requirements supplied for this initialization are the source of truth
 - Deploy an application to **Streamlit Community Cloud**.
 - Complete four milestones from **November 8 through November 29, 2026**.
 
-Feature representations, models, sentiment labels, evaluation methods, and other modeling decisions remain to be agreed upon by the team. Record those decisions and their rationale as the project develops.
+Group Psi plans BoW and TF-IDF features, Multinomial Naive Bayes and Logistic Regression, and a feedforward neural network. Ratings 1–2 map to Negative, 3 to Neutral, and 4–5 to Positive. Only the reusable Naive Bayes baseline is implemented; see the [ML baseline guide](docs/ML_BASELINE.md) for scope and the pending Data Engineer handoff.
 
 ## Milestones
 
@@ -42,7 +42,7 @@ amazon-review-sentiment-ai/
 └── report/             # Project report and milestone documentation
 ```
 
-Empty directories contain `.gitkeep` placeholders so Git preserves the structure. Add a `tests/` directory when there is project logic to test.
+Empty directories contain `.gitkeep` placeholders so Git preserves the structure. The root `ml_baseline.py` contains the reusable ML components; `tests/` contains synthetic unit tests and `docs/ML_BASELINE.md` describes the ML API and usage.
 
 ## Local setup
 
