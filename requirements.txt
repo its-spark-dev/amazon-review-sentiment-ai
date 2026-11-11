@@ -1,3 +1,5 @@
 # Streamlit placeholder and reusable classical ML baseline.
 streamlit>=1.40,<2.0
 scikit-learn>=1.5,<2.0
+# Local M2 report figures (no Streamlit inference integration).
+matplotlib>=3.8,<4.0

@@ -92,8 +92,14 @@ Training texts must contain tokens recognized by the vectorizer.
 Ratings define the target labels and are not included as input features.
 
 Real-data fitting and evaluation remain blocked on that handoff. Logistic
-Regression, the planned feedforward neural network, majority-class comparison,
-tuning, serialization, and Streamlit inference integration are future work and
-are not implemented here. M2 assigns initial baseline training to Sang Park;
+Regression, the planned feedforward neural network, tuning, serialization,
+and Streamlit inference integration are future work and are not implemented here. M2 assigns initial baseline training to Sang Park;
 the submitted timeline targets comparison of all models and app integration in
 M3, followed by final model results and deployment in M4.
+
+## M2 orchestration and reporting
+
+See [M2 analysis tools](M2_ANALYSIS.md) for the implemented shared-split runner,
+train-majority comparison, metrics/figure exports, informative features, and
+traceable prediction/error lists. These utilities reuse this module and are
+validated with synthetic inputs only; real-data results still await the handoff.

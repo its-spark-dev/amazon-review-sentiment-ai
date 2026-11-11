@@ -89,8 +89,12 @@ example. Validation so far uses synthetic data only and establishes no Amazon
 review performance. Real-data training, evaluation, and error analysis await
 the cleaned-data handoff and coordinated split. M1 exploration is documented in
 the submitted charter, but its preparation and EDA code are not in the repository.
-Logistic Regression, MLP, the majority-class comparison, model
-serialization, deployment, and live application predictions are not implemented.
+The [M2 analysis tools](docs/M2_ANALYSIS.md) now provide a shared-split execution
+flow for BoW/TF-IDF Naive Bayes and a training-majority baseline, metric exports,
+feature analysis, confusion matrix plots, and traceable error lists. These tools
+are validated only on synthetic data; no real-data comparison is complete.
+Logistic Regression, MLP, model serialization, deployment, and live application
+predictions are not implemented.
 The Streamlit application remains a placeholder with no inference integration.
 
 For M2, Sang will train the initial baseline after the data handoff; Jacob will
@@ -125,10 +129,11 @@ amazon-review-sentiment-ai/
 ├── README.md
 ├── app.py                    # Streamlit placeholder
 ├── ml_baseline.py            # Reusable classical ML baseline
-├── requirements.txt          # Streamlit and scikit-learn dependencies
+├── m2_analysis.py            # Dataset-independent execution and reporting
+├── requirements.txt          # Runtime and plotting dependencies
 ├── data/README.md            # Dataset source and local storage guidance
-├── docs/ML_BASELINE.md        # ML API, example, and data handoff notes
-├── tests/test_ml_baseline.py  # Synthetic unit tests
+├── docs/                     # ML baseline API and M2 analysis usage
+├── tests/                    # Synthetic baseline and analysis tests
 ├── notebooks/                # Reserved for exploration and experiments
 ├── models/                   # Local generated artifacts; ignored by Git
 └── report/                   # Reserved for written deliverables
