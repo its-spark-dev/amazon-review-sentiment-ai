@@ -64,3 +64,6 @@ kaggle.json
 .vscode/
 *.log
 *.tmp
+
+# Local M2 evaluation outputs may include raw review text.
+/outputs/m2/
