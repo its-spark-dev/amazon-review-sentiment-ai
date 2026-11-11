@@ -2,7 +2,10 @@
 
 CSE 3521, Autumn 2026, The Ohio State University. This contribution provides
 dataset-independent building blocks for the first classical baseline, using
-scikit-learn. It does not report Amazon review performance.
+scikit-learn. Milestone 1 has been submitted; M2 is the next milestone on
+November 15, 2026. M1 includes the team plan and initial dataset exploration,
+but this module has only been validated on synthetic data and does not report
+Amazon review performance.
 
 ## Implemented API
 
@@ -67,19 +70,30 @@ real-world model quality.
 
 ## Data handoff and future work
 
-The Data Engineer owns the professor-required **50,000-review sample with
-`random_state=48`**, cleaning, exploratory analysis, and shared data preparation.
-No sample or dataset processing is included here. The rating helper defines the
-agreed label mapping without reading or modifying data.
+Abderrachid Sghir is the Data Engineer responsible for data collection,
+cleaning, and organization. M1 reports initial exploration of the required
+**50,000-review sample with `random_state=48`**, including class imbalance and
+duplicate reviews; see [the data guide](../data/README.md). These reported
+findings are separate from this module's synthetic validation. No sample,
+preparation script, or real-data split is included here. The rating helper
+defines the agreed label mapping without reading or modifying data.
 
-Before using real reviews, coordinate the shared train/validation/test split and
-text/label interface with the Data Engineer. The ML pipeline expects a sequence
+The submitted M1 timeline plans a shared **80/20 train/test split** for M2,
+alongside cleaning and BoW/TF-IDF preparation. Coordinate duplicate handling,
+the shared split, text/label interface, and use of the existing vectorizer
+factories with the Data Engineer before real-data fitting. Ensure a repeated
+review cannot occur in both partitions. Any additional validation or tuning protocol
+still needs agreement. The ML pipeline expects a sequence
 of nonempty review strings and aligned sentiment label strings. Fit the entire
 pipeline **only on training texts and labels**, then call `predict` on validation
 or test texts. Never fit a vectorizer on the full dataset or refit it on held-out
 data; this would leak vocabulary and, for TF-IDF, document-frequency information.
 Training texts must contain tokens recognized by the vectorizer.
+Ratings define the target labels and are not included as input features.
 
 Real-data fitting and evaluation remain blocked on that handoff. Logistic
-Regression, the planned feedforward neural network, tuning, serialization, and
-Streamlit inference integration are future work and are not implemented here.
+Regression, the planned feedforward neural network, majority-class comparison,
+tuning, serialization, and Streamlit inference integration are future work and
+are not implemented here. M2 assigns initial baseline training to Sang Park;
+the submitted timeline targets comparison of all models and app integration in
+M3, followed by final model results and deployment in M4.

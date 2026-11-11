@@ -12,6 +12,12 @@ requirements include a public GitHub repository, at least two feature
 representations, at least two classical ML models, and at least one deep or
 modern NLP model.
 
+**Status as of November 11, 2026: Milestone 1 submitted; preparing M2 (November 15).**
+The submitted M1 charter defines the team roles, problem statement, dataset
+summary, technical approach, and timeline. The repository currently provides
+the reusable ML baseline and a Streamlit placeholder; real-data model results
+are still pending.
+
 ## Team
 
 | Confirmed member | Primary role |
@@ -20,15 +26,20 @@ modern NLP model.
 | Sang Park | ML Engineer |
 | Jacob Myers | App Engineer |
 | Yash Amin | Analyst / Writer |
+| Abderrachid Sghir | Data Engineer |
 
-Additional roster information, including the Data Engineer assignment and GitHub
-usernames, is pending confirmation.
+Roles follow the submitted M1 charter. GitHub usernames are not listed unless
+confirmed by the team.
 
 ## Dataset and Sentiment Labels
 
 Source: [Amazon Fine Food Reviews on Kaggle](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews).
-The required Group Psi sample is **50,000 reviews**, generated with
-**`random_state=48`**. Sample preparation is pending; no dataset is committed.
+The Group Psi sample uses **50,000 reviews** with **`random_state=48`**.
+The submitted M1 dataset summary reports initial exploration of this sample:
+approximately **14.4% Negative, 7.6% Neutral, and 78.0% Positive**, with **3,720
+duplicate rows** identified under its user/profile/timestamp/text criterion.
+These are reported exploratory findings, not model results or statistics
+recomputed by this repository. No dataset or preparation script is committed.
 See [data/README.md](data/README.md) for source and local storage instructions.
 
 | Star rating | Sentiment label |
@@ -37,10 +48,14 @@ See [data/README.md](data/README.md) for source and local storage instructions.
 | 3 | Neutral |
 | 4–5 | Positive |
 
-The Data Engineer owns sampling, cleaning, exploratory analysis, and shared data
-preparation. Coordinate the shared train/validation/test split and text/label
-interface before real-data training. Fit feature extraction only on training
-data; transform held-out data without refitting to avoid leakage.
+Abderrachid owns collection, cleaning, and organization of the data. The M1
+timeline assigns cleaning, two feature representations, and a shared **80/20
+train/test split** to the Data Engineer for M2. The code already provides reusable
+BoW/TF-IDF vectorizers; coordinate their use and the text/label handoff across
+the data and ML work. Resolve duplicate handling before splitting, and fit
+feature extraction only on training data. Any validation or tuning protocol
+still needs team agreement; no real-data split is implemented here. Star ratings
+define the target labels and are not inputs to the current text baseline.
 
 ## Technical Approach
 
@@ -50,6 +65,7 @@ data; transform held-out data without refitting to avoid leakage.
 | Classical ML | Multinomial Naive Bayes and Logistic Regression |
 | Deep learning | Feedforward Neural Network (MLP) |
 | Evaluation | Accuracy, precision, recall, Macro-F1, per-class metrics, and confusion matrices |
+| Comparison protocol | A consistent shared split, class-imbalance analysis, and a majority-class baseline |
 
 These plans describe the intended full project; current functionality is listed
 below.
@@ -71,9 +87,17 @@ these reusable components in `ml_baseline.py`:
 See the [ML baseline guide](docs/ML_BASELINE.md) for API details and an in-memory
 example. Validation so far uses synthetic data only and establishes no Amazon
 review performance. Real-data training, evaluation, and error analysis await
-prepared data and a coordinated split. Logistic Regression, MLP, model
+the cleaned-data handoff and coordinated split. M1 exploration is documented in
+the submitted charter, but its preparation and EDA code are not in the repository.
+Logistic Regression, MLP, the majority-class comparison, model
 serialization, deployment, and live application predictions are not implemented.
 The Streamlit application remains a placeholder with no inference integration.
+
+For M2, Sang will train the initial baseline after the data handoff; Jacob will
+build the basic Streamlit interface and review input; Abderrachid will prepare
+the shared data/features/split; Yash will document feature engineering, baseline
+results, and error analysis; Zachary will coordinate blockers and the submission.
+These are the submitted timeline's assignments, not claims of completed work.
 
 ## Project Milestones
 
@@ -82,13 +106,17 @@ announcement. **M1 was officially extended from November 8 to November 10, 2026.
 All milestone submission times are **11:59 PM EST**; no time is specified here for
 the live presentation.
 
-| Milestone | Deadline | Deliverable |
-| --- | --- | --- |
-| M1 — Project Charter & Scope | Nov 10, 2026, 11:59 PM EST | Team roles, problem statement, dataset summary, technical plan, timeline, GitHub repository |
-| M2 — Initial Solution | Nov 15, 2026, 11:59 PM EST | Feature pipeline, initial classical model, baseline evaluation, error analysis |
-| M3 — Refined Solution | Nov 22, 2026, 11:59 PM EST | All required models, comparison results, Streamlit prototype |
-| M4 — Final Report | Nov 29, 2026, 11:59 PM EST | Final written report and presentation slides |
-| Live Presentation | Dec 3, 2026 | 8-minute presentation and 2-minute Q&A |
+| Milestone | Deadline | Deliverable | Status |
+| --- | --- | --- | --- |
+| M1 — Project Charter & Scope | Nov 10, 2026, 11:59 PM EST | Team roles, problem statement, dataset summary, technical plan, timeline, GitHub repository | Submitted |
+| M2 — Initial Solution | Nov 15, 2026, 11:59 PM EST | Feature pipeline, initial classical model, baseline evaluation, error analysis | Next milestone |
+| M3 — Refined Solution | Nov 22, 2026, 11:59 PM EST | All required models, comparison results, Streamlit prototype | Planned |
+| M4 — Final Report | Nov 29, 2026, 11:59 PM EST | Final written report and presentation slides | Planned |
+| Live Presentation | Dec 3, 2026 | 8-minute presentation and 2-minute Q&A | Planned |
+
+The submitted team timeline targets model/app integration for M3 and deployment
+and final verification for M4. Submission status is based on the team's update;
+the submitted PDF is not currently tracked in this repository.
 
 ## Repository Structure
 
