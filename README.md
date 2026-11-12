@@ -95,7 +95,10 @@ feature analysis, confusion matrix plots, and traceable error lists. These tools
 are validated only on synthetic data; no real-data comparison is complete.
 Logistic Regression, MLP, model serialization, deployment, and live application
 predictions are not implemented.
-The Streamlit application remains a placeholder with no inference integration.
+The Streamlit app (`app.py`) provides review input and displays the predicted label
+and class probabilities once a fitted pipeline is saved to
+`models/sentiment_pipeline.joblib` (or the path in `SENTIMENT_MODEL_PATH`); no
+trained model is committed, so by default it shows a "no model" notice.
 
 For M2, Sang will train the initial baseline after the data handoff; Jacob will
 build the basic Streamlit interface and review input; Abderrachid will prepare
@@ -127,7 +130,9 @@ the submitted PDF is not currently tracked in this repository.
 ```text
 amazon-review-sentiment-ai/
 ├── README.md
-├── app.py                    # Streamlit placeholder
+├── app.py                    # Streamlit UI (review input → sentiment)
+├── inference.py              # Model loading and single-review prediction
+├── .streamlit/config.toml    # Streamlit theme and server settings
 ├── ml_baseline.py            # Reusable classical ML baseline
 ├── m2_analysis.py            # Dataset-independent execution and reporting
 ├── requirements.txt          # Runtime and plotting dependencies
@@ -159,14 +164,16 @@ On Windows, use `py -3.11 -m venv .venv` to create the environment and
 `.venv\Scripts\Activate.ps1` in PowerShell to activate it, then run the same pip
 and test commands. Tests need no dataset, credentials, or external services.
 
-To launch the placeholder from the repository root with the environment active:
+To launch the app from the repository root with the environment active:
 
 ```bash
 python -m streamlit run app.py
 ```
 
 Open the local URL printed by Streamlit (normally `http://localhost:8501`). Stop
-the server with `Ctrl+C`. The placeholder needs no dataset, model files, or secrets.
+the server with `Ctrl+C`. It needs no dataset or secrets. To enable predictions,
+save a fitted pipeline with `joblib.dump(pipeline, "models/sentiment_pipeline.joblib")`.
+Only load model files your team produced: joblib files can execute code when loaded.
 
 ## Deployment Status
 
