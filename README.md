@@ -39,7 +39,7 @@ The submitted M1 dataset summary reports initial exploration of this sample:
 approximately **14.4% Negative, 7.6% Neutral, and 78.0% Positive**, with **3,720
 duplicate rows** identified under its user/profile/timestamp/text criterion.
 These are reported exploratory findings, not model results or statistics
-recomputed by this repository. No dataset or preparation script is committed.
+recomputed by this repository. No dataset is committed; preparation scripts live in `scripts/`.
 See [data/README.md](data/README.md) for source and local storage instructions.
 
 | Star rating | Sentiment label |
@@ -54,7 +54,7 @@ train/test split** to the Data Engineer for M2. The code already provides reusab
 BoW/TF-IDF vectorizers; coordinate their use and the text/label handoff across
 the data and ML work. Resolve duplicate handling before splitting, and fit
 feature extraction only on training data. Any validation or tuning protocol
-still needs team agreement; no real-data split is implemented here. Star ratings
+still needs team agreement; the shared split is implemented in `scripts/split_reviews.py`. Star ratings
 define the target labels and are not inputs to the current text baseline.
 
 ## Technical Approach
@@ -88,7 +88,7 @@ See the [ML baseline guide](docs/ML_BASELINE.md) for API details and an in-memor
 example. Validation so far uses synthetic data only and establishes no Amazon
 review performance. Real-data training, evaluation, and error analysis await
 the cleaned-data handoff and coordinated split. M1 exploration is documented in
-the submitted charter, but its preparation and EDA code are not in the repository.
+the submitted charter, and preparation scripts now live in `scripts/`; its EDA code is not in the repository.
 The [M2 analysis tools](docs/M2_ANALYSIS.md) now provide a shared-split execution
 flow for BoW/TF-IDF Naive Bayes and a training-majority baseline, metric exports,
 feature analysis, confusion matrix plots, and traceable error lists. These tools
@@ -136,7 +136,8 @@ amazon-review-sentiment-ai/
 ├── ml_baseline.py            # Reusable classical ML baseline
 ├── m2_analysis.py            # Dataset-independent execution and reporting
 ├── requirements.txt          # Runtime and plotting dependencies
-├── data/README.md            # Dataset source and local storage guidance
+├── scripts/                  # Sampling, cleaning, and train/test split scripts
+├── data/                     # Local datasets and README with preparation commands
 ├── docs/                     # ML baseline API and M2 analysis usage
 ├── tests/                    # Synthetic baseline and analysis tests
 ├── notebooks/                # Reserved for exploration and experiments
