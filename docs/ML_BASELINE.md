@@ -74,8 +74,8 @@ Abderrachid Sghir is the Data Engineer responsible for data collection,
 cleaning, and organization. M1 reports initial exploration of the required
 **50,000-review sample with `random_state=48`**, including class imbalance and
 duplicate reviews; see [the data guide](../data/README.md). These reported
-findings are separate from this module's synthetic validation. No sample,
-preparation script, or real-data split is included here. The rating helper
+findings are separate from this module's synthetic validation. Dataset files are not committed. Sampling, cleaning, and the shared split are
+implemented in `scripts/`; see the data guide for preparation commands. The rating helper
 defines the agreed label mapping without reading or modifying data.
 
 The submitted M1 timeline plans a shared **80/20 train/test split** for M2,

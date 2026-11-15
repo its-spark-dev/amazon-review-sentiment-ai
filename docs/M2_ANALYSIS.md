@@ -51,7 +51,10 @@ provides tracing. Always retain review text for error inspection.
 
 The caller owns sample provenance, duplicate handling, and the shared 80/20
 train/test split. No code here verifies cross-partition duplicate identity or
-creates that split. Keep sampling seed 48 separate from any agreed split seed.
+creates that split within `m2_analysis.py`. The preparation scripts in
+`scripts/` provide sampling, cleaning, and a grouped, stratified 80/20 split;
+see [the data guide](../data/README.md) for commands. Both sampling and the
+shared split currently use seed 48.
 Do not include target ratings in input text. Agree on any validation/tuning
 protocol within training data rather than optimizing against the held-out test.
 
