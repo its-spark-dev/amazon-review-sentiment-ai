@@ -4,8 +4,8 @@ CSE 3521, Autumn 2026, The Ohio State University. This contribution provides
 dataset-independent building blocks for the first classical baseline, using
 scikit-learn. Milestone 1 has been submitted; M2 is the next milestone on
 November 15, 2026. M1 includes the team plan and initial dataset exploration,
-but this module has only been validated on synthetic data and does not report
-Amazon review performance.
+and this module has now been exercised on the shared real-data split through
+`run_m2_baseline.py`. See [M2 results](M2_BASELINE_RESULTS.md) for measured results.
 
 ## Implemented API
 
@@ -91,9 +91,11 @@ data; this would leak vocabulary and, for TF-IDF, document-frequency information
 Training texts must contain tokens recognized by the vectorizer.
 Ratings define the target labels and are not included as input features.
 
-Real-data fitting and evaluation remain blocked on that handoff. Logistic
-Regression, the planned feedforward neural network, tuning, serialization,
-and Streamlit inference integration are future work and are not implemented here. M2 assigns initial baseline training to Sang Park;
+Initial real-data fitting and evaluation are recorded in [M2 results](M2_BASELINE_RESULTS.md). Logistic
+Regression, the planned feedforward neural network, tuning, and live deployment
+remain future work. The prepared-split runner can now export a local BoW pipeline,
+and its predictions have been checked through the existing Streamlit UI.
+M2 assigns initial baseline training to Sang Park;
 the submitted timeline targets comparison of all models and app integration in
 M3, followed by final model results and deployment in M4.
 
@@ -102,4 +104,4 @@ M3, followed by final model results and deployment in M4.
 See [M2 analysis tools](M2_ANALYSIS.md) for the implemented shared-split runner,
 train-majority comparison, metrics/figure exports, informative features, and
 traceable prediction/error lists. These utilities reuse this module and are
-validated with synthetic inputs only; real-data results still await the handoff.
+validated with synthetic inputs and the shared prepared split; see the M2 results handoff.
