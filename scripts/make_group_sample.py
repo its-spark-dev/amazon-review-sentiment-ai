@@ -2,11 +2,11 @@
 
 Draws a fixed-seed random sample from Reviews.csv (downloaded from
 https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews) and writes it
-next to this script as group_sample_seed<SEED>.csv.
+to data/group_sample_seed<SEED>.csv by default.
 
 Usage:
-    python data/make_group_sample.py
-    python data/make_group_sample.py --reviews path/to/Reviews.csv --out path/to/output.csv
+    python scripts/make_group_sample.py
+    python scripts/make_group_sample.py --reviews path/to/Reviews.csv --out path/to/output.csv
 """
 
 import argparse
@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pandas as pd
 
-DATA_DIR = Path(__file__).resolve().parent
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 SEED = 48  # Group Psi
 SAMPLE_SIZE = 50_000

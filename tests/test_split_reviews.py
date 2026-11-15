@@ -1,10 +1,10 @@
-"""Synthetic checks for data/split_reviews.py; no dataset required."""
+"""Synthetic checks for scripts/split_reviews.py; no dataset required."""
 
 import unittest
 
 import pandas as pd
 
-from data.split_reviews import split
+from scripts.split_reviews import split
 
 COLUMNS = ["Id", "UserId", "Score", "Text", "Sentiment"]
 CLASS_COUNTS = {"Positive": 70, "Negative": 20, "Neutral": 10}

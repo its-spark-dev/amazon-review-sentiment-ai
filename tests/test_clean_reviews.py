@@ -1,10 +1,10 @@
-"""Synthetic checks for data/clean_reviews.py; no dataset required."""
+"""Synthetic checks for scripts/clean_reviews.py; no dataset required."""
 
 import unittest
 
 import pandas as pd
 
-from data.clean_reviews import clean
+from scripts.clean_reviews import clean
 
 COLUMNS = [
     "Id", "ProductId", "UserId", "ProfileName", "HelpfulnessNumerator",

@@ -1,11 +1,11 @@
 """Clean the group's review sample.
 
 Reads the sampled reviews, applies the cleaning steps in `clean`, and writes
-the result. Splitting into train/test happens in a later step.
+the result. `split_reviews.py` then splits that result into train and test.
 
 Usage:
-    python data/clean_reviews.py
-    python data/clean_reviews.py --src path/to/sample.csv --dst path/to/cleaned.csv
+    python scripts/clean_reviews.py
+    python scripts/clean_reviews.py --src path/to/sample.csv --dst path/to/cleaned.csv
 """
 
 import argparse
@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # repo root, fo
 
 from ml_baseline import rating_to_sentiment  # noqa: E402
 
-DATA_DIR = Path(__file__).resolve().parent
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 SEED = 48  # Group Psi
 DEFAULT_SRC = DATA_DIR / f"group_sample_seed{SEED}.csv"

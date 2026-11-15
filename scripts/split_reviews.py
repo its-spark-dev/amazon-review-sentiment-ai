@@ -5,8 +5,8 @@ Reads the output of `clean_reviews.py` and writes an 80/20 split, stratified by
 side, so a repeated review cannot leak from training into test data.
 
 Usage:
-    python data/split_reviews.py
-    python data/split_reviews.py --src path/to/cleaned.csv --train path/to/train.csv --test path/to/test.csv
+    python scripts/split_reviews.py
+    python scripts/split_reviews.py --src path/to/cleaned.csv --train path/to/train.csv --test path/to/test.csv
 """
 
 import argparse
@@ -15,7 +15,7 @@ from pathlib import Path
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-DATA_DIR = Path(__file__).resolve().parent
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 SEED = 48  # Group Psi
 TEST_SIZE = 0.2
