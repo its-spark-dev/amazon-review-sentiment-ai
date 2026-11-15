@@ -16,7 +16,12 @@ SAMPLE_REVIEWS = {
 
 
 @st.cache_resource(show_spinner="Loading model…")
-def get_model(path: str):
+def get_model(path: str, file_version: tuple):
+    """Cache an existing artifact by path and filesystem version.
+
+    file_version deliberately participates in Streamlit's cache key, so normal
+    writes and atomic replacements invalidate the previous model resource.
+    """
     return load_model(path)
 
 
@@ -41,7 +46,13 @@ def main() -> None:
     st.caption("Classify a food product review as Negative, Neutral, or Positive.")
 
     try:
-        model = get_model(str(path))
+        # Check outside the cache: a missing artifact must not cache None.
+        if path.is_file():
+            stat = path.stat()
+            version = (stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size, stat.st_ino)
+            model = get_model(str(path.resolve()), version)
+        else:
+            model = None
     except Exception as exc:  # corrupt or incompatible artifact
         model = None
         st.error(f"Could not load the model: {exc}")
