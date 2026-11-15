@@ -12,10 +12,10 @@ requirements include a public GitHub repository, at least two feature
 representations, at least two classical ML models, and at least one deep or
 modern NLP model.
 
-**Status as of November 11, 2026: Milestone 1 submitted; preparing M2 (November 15).**
+**Status as of November 15, 2026: Milestone 1 submitted; preparing M2 (November 15).**
 The submitted M1 charter defines the team roles, problem statement, dataset
 summary, technical approach, and timeline. The repository currently provides
-the reusable ML baseline and a Streamlit placeholder; real-data model results
+the reusable ML baseline and a Streamlit review-input/inference UI; real-data model results
 are still pending.
 
 ## Team
@@ -93,9 +93,12 @@ The [M2 analysis tools](docs/M2_ANALYSIS.md) now provide a shared-split executio
 flow for BoW/TF-IDF Naive Bayes and a training-majority baseline, metric exports,
 feature analysis, confusion matrix plots, and traceable error lists. These tools
 are validated only on synthetic data; no real-data comparison is complete.
-Logistic Regression, MLP, model serialization, deployment, and live application
-predictions are not implemented.
-The Streamlit application remains a placeholder with no inference integration.
+Logistic Regression, MLP, automated model export, and a live deployment are not
+implemented. No real-data-trained model is included.
+The Streamlit app (`app.py`) provides review input and displays the predicted label
+and class probabilities once a fitted pipeline is saved to
+`models/sentiment_pipeline.joblib` (or the path in `SENTIMENT_MODEL_PATH`); no
+trained model is committed, so by default it shows a "no model" notice.
 
 For M2, Sang will train the initial baseline after the data handoff; Jacob will
 build the basic Streamlit interface and review input; Abderrachid will prepare
@@ -127,7 +130,9 @@ the submitted PDF is not currently tracked in this repository.
 ```text
 amazon-review-sentiment-ai/
 ├── README.md
-├── app.py                    # Streamlit placeholder
+├── app.py                    # Streamlit UI (review input → sentiment)
+├── inference.py              # Model loading and single-review prediction
+├── .streamlit/config.toml    # Streamlit theme and server settings
 ├── ml_baseline.py            # Reusable classical ML baseline
 ├── m2_analysis.py            # Dataset-independent execution and reporting
 ├── requirements.txt          # Runtime and plotting dependencies
@@ -159,23 +164,33 @@ On Windows, use `py -3.11 -m venv .venv` to create the environment and
 `.venv\Scripts\Activate.ps1` in PowerShell to activate it, then run the same pip
 and test commands. Tests need no dataset, credentials, or external services.
 
-To launch the placeholder from the repository root with the environment active:
+To launch the app from the repository root with the environment active:
 
 ```bash
 python -m streamlit run app.py
 ```
 
 Open the local URL printed by Streamlit (normally `http://localhost:8501`). Stop
-the server with `Ctrl+C`. The placeholder needs no dataset, model files, or secrets.
+the server with `Ctrl+C`. It needs no dataset or secrets. To enable predictions,
+save a fitted pipeline with `joblib.dump(pipeline, "models/sentiment_pipeline.joblib")`.
+Only load model files your team produced: joblib files can execute code when loaded.
+On the next app rerun (for example, a sample-button click or page reload), adding
+a model enables analysis, changing or replacing it reloads the model, and
+removing it disables analysis. Unchanged files reuse the cached model. File
+version checks use modification/change timestamps, size, and file identity;
+the app does not poll for file changes in the background. Model validation and
+UI tests use synthetic data and do not establish Amazon review performance.
 
 ## Deployment Status
 
 Streamlit Community Cloud deployment is planned; this repository provides no live
-deployment URL or integrated model predictions. When ready, follow the
+deployment URL or real-data model results. The local UI can predict with a
+compatible fitted pipeline. When ready, follow the
 [official deployment guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app)
 and select this repository, branch `main`, entrypoint `app.py`, Python 3.11, and
-the root `requirements.txt`. Deploying the current app would show only the
-placeholder. Configure any future secrets in Community Cloud's secrets settings;
+the root `requirements.txt`. Without an accessible fitted pipeline, the app shows
+the input UI and a no-model notice with analysis disabled. Configure any future
+secrets in Community Cloud's secrets settings;
 never commit `.env`, `.streamlit/secrets.toml`, or dataset service credentials.
 
 ## Contributing
