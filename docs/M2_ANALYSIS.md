@@ -2,7 +2,8 @@
 
 `m2_analysis.py` reuses the existing Naive Bayes pipelines to compare BoW,
 TF-IDF, and a train-majority classifier on the same externally supplied split.
-Only synthetic inputs have been used to validate these tools. They do not load,
+The original smoke tests use synthetic inputs; the prepared-split runner now
+has a real-data evaluation recorded in [M2 results](M2_BASELINE_RESULTS.md). They do not load,
 clean, sample, or split Amazon data, train additional model types, integrate
 Streamlit, tune parameters, or serialize fitted models.
 
@@ -96,5 +97,19 @@ Outputs include review text and must stay local: use the ignored `outputs/m2/`
 folder. Custom output paths are not automatically ignored. Never commit real
 reviews or generated results inadvertently. For M2, the Data Engineer and ML
 Engineer must still agree on the cleaned-text interface, split, and shared
-feature definitions. Real-data metrics, feature lists, 5–10 inspected errors,
-and written conclusions remain pending that handoff.
+feature definitions. The initial real-data metrics, feature lists, and ten inspected errors are
+now recorded in [M2 results](M2_BASELINE_RESULTS.md); final report writing remains
+a team responsibility.
+
+## Execute the fixed prepared split
+
+```bash
+python scripts/run_m2_baseline.py --model-output models/sentiment_pipeline.joblib
+```
+
+Requires local `data/train_reviews.csv` and `data/test_reviews.csv` with
+`Id`, `Text`, and `Sentiment`. Optional `Score` is checked against labels.
+The adapter validates overlap and alignment, records hashes/environment versions,
+and never resplits. Use `--train`, `--test`, and `--output-dir` to override paths.
+`--model-output` optionally saves the predeclared BoW NB pipeline for the app;
+it refuses to overwrite an artifact. Generated files remain ignored/local.

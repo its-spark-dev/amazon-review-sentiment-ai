@@ -15,8 +15,8 @@ modern NLP model.
 **Status as of November 15, 2026: Milestone 1 submitted; preparing M2 (November 15).**
 The submitted M1 charter defines the team roles, problem statement, dataset
 summary, technical approach, and timeline. The repository currently provides
-the reusable ML baseline and a Streamlit review-input/inference UI; real-data model results
-are still pending.
+the reusable ML baseline and a Streamlit review-input/inference UI; initial real-data baseline results
+are available in the [M2 results handoff](docs/M2_BASELINE_RESULTS.md).
 
 ## Team
 
@@ -85,26 +85,28 @@ these reusable components in `ml_baseline.py`:
   prediction, leakage checks, and known evaluation outputs.
 
 See the [ML baseline guide](docs/ML_BASELINE.md) for API details and an in-memory
-example. Validation so far uses synthetic data only and establishes no Amazon
-review performance. Real-data training, evaluation, and error analysis await
-the cleaned-data handoff and coordinated split. M1 exploration is documented in
+example. The shared prepared data has now been evaluated with fixed baseline settings;
+see the [measured M2 results](docs/M2_BASELINE_RESULTS.md) for the protocol,
+metrics, feature analysis, ten inspected errors, and reproduction command. M1 exploration is documented in
 the submitted charter, and preparation scripts now live in `scripts/`; its EDA code is not in the repository.
 The [M2 analysis tools](docs/M2_ANALYSIS.md) now provide a shared-split execution
 flow for BoW/TF-IDF Naive Bayes and a training-majority baseline, metric exports,
-feature analysis, confusion matrix plots, and traceable error lists. These tools
-are validated only on synthetic data; no real-data comparison is complete.
-Logistic Regression, MLP, automated model export, and a live deployment are not
-implemented. No real-data-trained model is included.
+feature analysis, confusion matrix plots, and traceable error lists. The tools
+now have synthetic regression tests and a measured real-data baseline run.
+Logistic Regression, MLP, and a live deployment are not implemented. A BoW NB
+pipeline can be exported locally by `scripts/run_m2_baseline.py`; no trained
+model or dataset is committed.
 The Streamlit app (`app.py`) provides review input and displays the predicted label
 and class probabilities once a fitted pipeline is saved to
 `models/sentiment_pipeline.joblib` (or the path in `SENTIMENT_MODEL_PATH`); no
-trained model is committed, so by default it shows a "no model" notice.
+trained model is committed, so a fresh clone shows a "no model" notice until
+a local artifact is generated.
 
-For M2, Sang will train the initial baseline after the data handoff; Jacob will
-build the basic Streamlit interface and review input; Abderrachid will prepare
-the shared data/features/split; Yash will document feature engineering, baseline
-results, and error analysis; Zachary will coordinate blockers and the submission.
-These are the submitted timeline's assignments, not claims of completed work.
+For M2, Sang has run the initial baselines and prepared the technical results
+handoff. Jacob implemented the Streamlit UI and shared preparation scripts
+(PRs #7 and #8). Abderrachid retains the M1 Data Engineer role. Yash and Zachary
+can use the handoff to assemble the final analysis, progress logs, updated
+timeline, and team submission; completion of that PDF is not claimed here.
 
 ## Project Milestones
 
@@ -185,7 +187,7 @@ UI tests use synthetic data and do not establish Amazon review performance.
 ## Deployment Status
 
 Streamlit Community Cloud deployment is planned; this repository provides no live
-deployment URL or real-data model results. The local UI can predict with a
+deployment URL. Initial real-data results are documented in the M2 handoff. The local UI can predict with a
 compatible fitted pipeline. When ready, follow the
 [official deployment guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app)
 and select this repository, branch `main`, entrypoint `app.py`, Python 3.11, and
