@@ -25,7 +25,7 @@ As of **November 15, 2026**:
 | --- | --- | --- |
 | M1 — Project Charter & Scope | Nov 10, 2026 | Submitted |
 | M2 — Initial Solution | Nov 15, 2026 | Technical implementation complete; submission not confirmed |
-| M3 — Refined Solution & App Prototype | Nov 22, 2026 | Planned |
+| M3 — Refined Solution & App Prototype | Nov 22, 2026 | ML comparison implemented; app integration/report pending |
 | M4 — Final Report | Nov 29, 2026 | Planned |
 
 Milestone deadlines are **11:59 PM EST**. M1 was extended from November 8 to
@@ -59,6 +59,10 @@ See [M2 baseline results](docs/M2_BASELINE_RESULTS.md) for the complete evaluati
 feature rankings, confusion matrices, ten inspected errors, and reproducibility
 record. These are measured real-data results; synthetic regression tests serve
 a separate purpose and are not performance evidence.
+
+M3 extends this baseline with validation-selected Logistic Regression and MLP,
+loss curves and timed comparisons. See [M3 results](docs/M3_RESULTS.md) and
+[training instructions](docs/M3_TRAINING.md); M2 results above are preserved.
 
 ## Implementation
 
@@ -143,15 +147,14 @@ files from trusted team sources: loading them can execute code.
 
 ## Roadmap
 
-- **M3 — Planned:** Logistic Regression, a feedforward neural network (MLP),
-  training-only validation and further evaluation, full model comparisons, and
-  refinement of the app prototype.
+- **M3 — In progress:** Logistic Regression, MLP, training-internal validation,
+  loss curves and model comparisons are implemented. Multi-model app integration,
+  screenshots and the final M3 report remain pending.
 - **M4 — Planned:** Final report and presentation slides, Streamlit Community
   Cloud deployment, and final verification. The team timeline schedules an
   **8-minute presentation + 2-minute Q&A on December 3, 2026**.
 
-Logistic Regression, MLP, and cloud deployment are not implemented. There is no
-live deployment URL. The intended hosting target is
+Cloud deployment is not implemented. There is no live deployment URL. The intended hosting target is
 [Streamlit Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app),
 using `main`, `app.py`, Python 3.11, and the root `requirements.txt`. A deployed
 instance will also need access to a compatible model. Configure future secrets
