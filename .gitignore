@@ -67,3 +67,6 @@ kaggle.json
 
 # Local M2 evaluation outputs may include raw review text.
 /outputs/m2/
+
+# M3 split IDs, raw predictions, charts and local model artifacts.
+/outputs/m3/
