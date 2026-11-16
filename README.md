@@ -1,158 +1,106 @@
 # Amazon Review Sentiment AI
 
+![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=flat)
+![M2 Complete](https://img.shields.io/badge/M2-Complete-2E7D32?style=flat)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat)
+
+Three-class sentiment analysis of Amazon Fine Food Reviews, with reproducible
+classical ML baselines, evaluation tools, and a local Streamlit inference UI.
+
 ## Project Overview
 
-Three-class sentiment analysis of Amazon Fine Food Reviews by **Group Psi** for
-**CSE 3521 — Survey of Artificial Intelligence I**, Autumn 2026, at **The Ohio
-State University**. Instructor: **Dr. Thomas Torku**.
+Built by **Group Psi** for **CSE 3521 — Survey of Artificial Intelligence I**,
+Autumn 2026, at **The Ohio State University**. Instructor: **Dr. Thomas Torku**.
 
-The project will compare classical machine learning and a feedforward neural
-network, with an interactive application on Streamlit Community Cloud. Course
-requirements include a public GitHub repository, at least two feature
-representations, at least two classical ML models, and at least one deep or
-modern NLP model.
+The task maps ratings **1–2 to Negative, 3 to Neutral, and 4–5 to Positive**.
+Models use review text as input; ratings define the target and are not features.
+The planned final system will compare at least two feature representations,
+two classical models, and a deep learning model through a deployed Streamlit app.
 
-**Status as of November 15, 2026: Milestone 1 submitted; preparing M2 (November 15).**
-The submitted M1 charter defines the team roles, problem statement, dataset
-summary, technical approach, and timeline. The repository currently provides
-the reusable ML baseline and a Streamlit review-input/inference UI; initial real-data baseline results
-are available in the [M2 results handoff](docs/M2_BASELINE_RESULTS.md).
+## Current Status
 
-## Team
+As of **November 15, 2026**:
 
-| Confirmed member | Primary role |
-| --- | --- |
-| Zachary Funk | Project Lead |
-| Sang Park | ML Engineer |
-| Jacob Myers | App Engineer |
-| Yash Amin | Analyst / Writer |
-| Abderrachid Sghir | Data Engineer |
+| Milestone | Deadline | Status |
+| --- | --- | --- |
+| M1 — Project Charter & Scope | Nov 10, 2026 | Submitted |
+| M2 — Initial Solution | Nov 15, 2026 | Technical implementation complete; submission not confirmed |
+| M3 — Refined Solution & App Prototype | Nov 22, 2026 | Planned |
+| M4 — Final Report | Nov 29, 2026 | Planned |
 
-Roles follow the submitted M1 charter. GitHub usernames are not listed unless
-confirmed by the team.
+Milestone deadlines are **11:59 PM EST**. M1 was extended from November 8 to
+November 10. The **M2 Complete** badge denotes technical completion, not confirmed
+submission or completion of the entire project. Final M2 PDF assembly, the updated
+team timeline, and individual progress logs remain team submission tasks.
 
-## Dataset and Sentiment Labels
+## Key Results — Milestone 2
 
-Source: [Amazon Fine Food Reviews on Kaggle](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews).
-The Group Psi sample uses **50,000 reviews** with **`random_state=48`**.
-The submitted M1 dataset summary reports initial exploration of this sample:
-approximately **14.4% Negative, 7.6% Neutral, and 78.0% Positive**, with **3,720
-duplicate rows** identified under its user/profile/timestamp/text criterion.
-These are reported exploratory findings, not model results or statistics
-recomputed by this repository. No dataset is committed; preparation scripts live in `scripts/`.
-See [data/README.md](data/README.md) for source and local storage instructions.
+A **50,000-review sample with seed 48** retained **46,278 reviews after cleaning**.
+The shared split contains **37,023 training / 9,255 test reviews**, approximately
+80/20. Identical cleaned texts stay in one partition to prevent text overlap;
+stratification is performed over distinct texts using their first labels.
 
-| Star rating | Sentiment label |
-| --- | --- |
-| 1–2 | Negative |
-| 3 | Neutral |
-| 4–5 | Positive |
+Both Bag of Words (BoW) and TF-IDF learn **36,995 features from training text
+only**. Fixed-setting Multinomial Naive Bayes models are compared with a baseline
+that always predicts the most common training label, Positive.
 
-Abderrachid owns collection, cleaning, and organization of the data. The M1
-timeline assigns cleaning, two feature representations, and a shared **80/20
-train/test split** to the Data Engineer for M2. The code already provides reusable
-BoW/TF-IDF vectorizers; coordinate their use and the text/label handoff across
-the data and ML work. Resolve duplicate handling before splitting, and fit
-feature extraction only on training data. Any validation or tuning protocol
-still needs team agreement; the shared split is implemented in `scripts/split_reviews.py`. Star ratings
-define the target labels and are not inputs to the current text baseline.
+| Model | Test Accuracy | Macro-F1 |
+| --- | ---: | ---: |
+| Majority-class baseline | 77.97% | 0.2921 |
+| **BoW + Multinomial Naive Bayes** | **83.39%** | **0.5524** |
+| TF-IDF + Multinomial Naive Bayes | 77.97% | 0.2931 |
 
-## Technical Approach
+BoW + Naive Bayes is the **best measured M2 baseline**, not the final model.
+Neutral classification remains challenging: its BoW recall is only **8.33%**.
+TF-IDF + Naive Bayes predicts almost every test review as Positive under the
+current defaults. No hyperparameter tuning or model selection used test results.
 
-| Area | Team plan |
-| --- | --- |
-| Features | Bag of Words (BoW) and TF-IDF |
-| Classical ML | Multinomial Naive Bayes and Logistic Regression |
-| Deep learning | Feedforward Neural Network (MLP) |
-| Evaluation | Accuracy, precision, recall, Macro-F1, per-class metrics, and confusion matrices |
-| Comparison protocol | A consistent shared split, class-imbalance analysis, and a majority-class baseline |
+See [M2 baseline results](docs/M2_BASELINE_RESULTS.md) for the complete evaluation,
+feature rankings, confusion matrices, ten inspected errors, and reproducibility
+record. These are measured real-data results; synthetic regression tests serve
+a separate purpose and are not performance evidence.
 
-These plans describe the intended full project; current functionality is listed
-below.
+## Implementation
 
-## Implementation Status
+- Reproducible sampling, text cleaning, and the shared grouped train/test split.
+- Three-class label mapping, BoW/TF-IDF extraction, and Naive Bayes pipelines.
+- Majority-class comparison, macro/per-class metrics, and confusion matrices.
+- Local JSON/CSV exports, feature visualizations, and traceable error lists.
+- Streamlit review input, sample reviews, predicted labels, and class probabilities.
+- Automated synthetic regression tests for data preparation, ML tools, and the UI.
 
-[PR #1](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/1) added
-these reusable components in `ml_baseline.py`:
+**No dataset or trained model artifact is committed.** A fresh clone runs the UI
+with a no-model notice and analysis disabled. Predictions require a compatible
+locally saved pipeline at `models/sentiment_pipeline.joblib`, or the path set by
+`SENTIMENT_MODEL_PATH`. Model additions, replacements, and removals are detected
+on the next app rerun; unchanged files reuse the cached resource.
 
-- Validated integer rating-to-sentiment mapping for the three classes.
-- Fresh, unfitted BoW and TF-IDF vectorizers.
-- A vectorizer + Multinomial Naive Bayes pipeline that can fit and predict in memory.
-- Evaluation returning accuracy, macro precision/recall/F1, per-class
-  precision/recall/F1, and a confusion matrix ordered **Negative, Neutral, Positive**
-  (rows: true labels; columns: predictions).
-- Twelve synthetic-data unit tests covering mapping, features, fitting and
-  prediction, leakage checks, and known evaluation outputs.
+API and usage details: [ML baseline](docs/ML_BASELINE.md) ·
+[M2 execution and analysis](docs/M2_ANALYSIS.md).
 
-See the [ML baseline guide](docs/ML_BASELINE.md) for API details and an in-memory
-example. The shared prepared data has now been evaluated with fixed baseline settings;
-see the [measured M2 results](docs/M2_BASELINE_RESULTS.md) for the protocol,
-metrics, feature analysis, ten inspected errors, and reproduction command. M1 exploration is documented in
-the submitted charter, and preparation scripts now live in `scripts/`; its EDA code is not in the repository.
-The [M2 analysis tools](docs/M2_ANALYSIS.md) now provide a shared-split execution
-flow for BoW/TF-IDF Naive Bayes and a training-majority baseline, metric exports,
-feature analysis, confusion matrix plots, and traceable error lists. The tools
-now have synthetic regression tests and a measured real-data baseline run.
-Logistic Regression, MLP, and a live deployment are not implemented. A BoW NB
-pipeline can be exported locally by `scripts/run_m2_baseline.py`; no trained
-model or dataset is committed.
-The Streamlit app (`app.py`) provides review input and displays the predicted label
-and class probabilities once a fitted pipeline is saved to
-`models/sentiment_pipeline.joblib` (or the path in `SENTIMENT_MODEL_PATH`); no
-trained model is committed, so a fresh clone shows a "no model" notice until
-a local artifact is generated.
-
-For M2, Sang has run the initial baselines and prepared the technical results
-handoff. Jacob implemented the Streamlit UI and shared preparation scripts
-(PRs #7 and #8). Abderrachid retains the M1 Data Engineer role. Yash and Zachary
-can use the handoff to assemble the final analysis, progress logs, updated
-timeline, and team submission; completion of that PDF is not claimed here.
-
-## Project Milestones
-
-The deadlines below reflect the course requirements and updated instructor
-announcement. **M1 was officially extended from November 8 to November 10, 2026.**
-All milestone submission times are **11:59 PM EST**; no time is specified here for
-the live presentation.
-
-| Milestone | Deadline | Deliverable | Status |
-| --- | --- | --- | --- |
-| M1 — Project Charter & Scope | Nov 10, 2026, 11:59 PM EST | Team roles, problem statement, dataset summary, technical plan, timeline, GitHub repository | Submitted |
-| M2 — Initial Solution | Nov 15, 2026, 11:59 PM EST | Feature pipeline, initial classical model, baseline evaluation, error analysis | Next milestone |
-| M3 — Refined Solution | Nov 22, 2026, 11:59 PM EST | All required models, comparison results, Streamlit prototype | Planned |
-| M4 — Final Report | Nov 29, 2026, 11:59 PM EST | Final written report and presentation slides | Planned |
-| Live Presentation | Dec 3, 2026 | 8-minute presentation and 2-minute Q&A | Planned |
-
-The submitted team timeline targets model/app integration for M3 and deployment
-and final verification for M4. Submission status is based on the team's update;
-the submitted PDF is not currently tracked in this repository.
-
-## Repository Structure
+## Project Structure
 
 ```text
 amazon-review-sentiment-ai/
 ├── README.md
-├── app.py                    # Streamlit UI (review input → sentiment)
-├── inference.py              # Model loading and single-review prediction
-├── .streamlit/config.toml    # Streamlit theme and server settings
-├── ml_baseline.py            # Reusable classical ML baseline
-├── m2_analysis.py            # Dataset-independent execution and reporting
-├── requirements.txt          # Runtime and plotting dependencies
-├── scripts/                  # Sampling, cleaning, and train/test split scripts
-├── data/                     # Local datasets and README with preparation commands
-├── docs/                     # ML baseline API and M2 analysis usage
-├── tests/                    # Synthetic baseline and analysis tests
-├── notebooks/                # Reserved for exploration and experiments
-├── models/                   # Local generated artifacts; ignored by Git
+├── app.py                    # Streamlit interface
+├── inference.py              # Model loading and review prediction
+├── ml_baseline.py            # Labels, vectorizers, NB pipelines, metrics
+├── m2_analysis.py            # Comparison and analysis exports
+├── requirements.txt          # Runtime dependencies
+├── .streamlit/config.toml    # Theme and server settings
+├── scripts/                  # Sampling, cleaning, splitting, real-data execution
+├── data/                     # Dataset guide; local CSVs are ignored
+├── docs/                     # Methods, usage, and measured M2 results
+├── tests/                    # Synthetic regression tests
+├── models/                   # Local model artifacts; ignored
+├── notebooks/                # Reserved for notebooks
 └── report/                   # Reserved for written deliverables
 ```
 
-Empty directories contain `.gitkeep` placeholders. Dataset files and generated
-model artifacts are excluded by `.gitignore`.
+## Getting Started
 
-## Local Setup and Testing
-
-Use **Python 3.11**. From a terminal on macOS or Linux:
+Use **Python 3.11**. On macOS or Linux:
 
 ```bash
 git clone https://github.com/its-spark-dev/amazon-review-sentiment-ai.git
@@ -161,46 +109,74 @@ python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
-```
-
-On Windows, use `py -3.11 -m venv .venv` to create the environment and
-`.venv\Scripts\Activate.ps1` in PowerShell to activate it, then run the same pip
-and test commands. Tests need no dataset, credentials, or external services.
-
-To launch the app from the repository root with the environment active:
-
-```bash
 python -m streamlit run app.py
 ```
 
-Open the local URL printed by Streamlit (normally `http://localhost:8501`). Stop
-the server with `Ctrl+C`. It needs no dataset or secrets. To enable predictions,
-save a fitted pipeline with `joblib.dump(pipeline, "models/sentiment_pipeline.joblib")`.
-Only load model files your team produced: joblib files can execute code when loaded.
-On the next app rerun (for example, a sample-button click or page reload), adding
-a model enables analysis, changing or replacing it reloads the model, and
-removing it disables analysis. Unchanged files reuse the cached model. File
-version checks use modification/change timestamps, size, and file identity;
-the app does not poll for file changes in the background. Model validation and
-UI tests use synthetic data and do not establish Amazon review performance.
+On Windows, create the environment with `py -3.11 -m venv .venv` and activate it
+with `.venv\Scripts\Activate.ps1` in PowerShell, then run the same installation,
+test, and app commands. Open Streamlit's printed local URL, normally
+`http://localhost:8501`; stop the server with `Ctrl+C`.
 
-## Deployment Status
+Installation needs package access. Tests and the no-model UI do **not** require
+the dataset, credentials, or an external inference service.
 
-Streamlit Community Cloud deployment is planned; this repository provides no live
-deployment URL. Initial real-data results are documented in the M2 handoff. The local UI can predict with a
-compatible fitted pipeline. When ready, follow the
-[official deployment guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app)
-and select this repository, branch `main`, entrypoint `app.py`, Python 3.11, and
-the root `requirements.txt`. Without an accessible fitted pipeline, the app shows
-the input UI and a no-model notice with analysis disabled. Configure any future
-secrets in Community Cloud's secrets settings;
-never commit `.env`, `.streamlit/secrets.toml`, or dataset service credentials.
+To work with real data, first obtain `data/Reviews.csv` and follow the
+[data preparation guide](data/README.md). The sampling, cleaning, and splitting
+scripts require the dataset and produce local CSVs. Once the shared train/test
+files exist, run:
 
-## Contributing
+```bash
+python scripts/run_m2_baseline.py --model-output models/sentiment_pipeline.joblib
+```
 
-Use focused branches and pull requests, run the synthetic tests for ML changes,
-and coordinate changes across team roles. Keep exploration in `notebooks/` and
-written deliverables in `report/`. Document contributions accurately and
-distinguish planned methods from validated functionality. Do not commit datasets,
-secrets, or generated model artifacts; coordinate shared data and split decisions
-with the Data Engineer before real-data experiments.
+The runner never resplits the supplied data. It writes local results under
+`outputs/m2/real-baseline/` and optionally saves the predeclared BoW model for the
+app. It refuses nonempty output directories and existing model artifacts; use a
+fresh `--output-dir` and omit `--model-output` when repeating evaluation without
+saving another model. See the [M2 reproduction instructions](docs/M2_BASELINE_RESULTS.md)
+for settings, input hashes, and exact measured software versions. Dependency
+ranges are in `requirements.txt`; each run also exports `requirements-run.txt`
+with pinned package versions locally.
+
+Keep datasets, generated outputs, and secrets out of Git. Only load joblib model
+files from trusted team sources: loading them can execute code.
+
+## Roadmap
+
+- **M3 — Planned:** Logistic Regression, a feedforward neural network (MLP),
+  training-only validation and further evaluation, full model comparisons, and
+  refinement of the app prototype.
+- **M4 — Planned:** Final report and presentation slides, Streamlit Community
+  Cloud deployment, and final verification. The team timeline schedules an
+  **8-minute presentation + 2-minute Q&A on December 3, 2026**.
+
+Logistic Regression, MLP, and cloud deployment are not implemented. There is no
+live deployment URL. The intended hosting target is
+[Streamlit Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app),
+using `main`, `app.py`, Python 3.11, and the root `requirements.txt`. A deployed
+instance will also need access to a compatible model. Configure future secrets
+in the platform's secrets settings; never commit `.env` or
+`.streamlit/secrets.toml`.
+
+## Team and Acknowledgments
+
+| Member | Confirmed primary role |
+| --- | --- |
+| Zachary Funk | Project Lead |
+| Sang Park | ML Engineer |
+| Jacob Myers | App Engineer |
+| Yash Amin | Analyst / Writer |
+| Abderrachid Sghir | Data Engineer |
+
+Roles follow the submitted M1 charter. Sang implemented the ML execution and
+analysis work; Jacob contributed the Streamlit UI and shared data preparation
+scripts ([PR #7](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/7),
+[PR #8](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/8)). The
+Git history records individual contributions; use focused branches and pull
+requests and run relevant tests before proposing changes.
+
+Dataset: **Amazon Fine Food Reviews**, published by SNAP on
+[Kaggle](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews).
+AI assistance for implementation and draft technical notes is disclosed in the
+[M2 results document](docs/M2_BASELINE_RESULTS.md); final analysis and submission
+writing should be reviewed and owned by the team.
