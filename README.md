@@ -3,6 +3,7 @@
 ![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=flat)
 ![M2 Complete](https://img.shields.io/badge/M2-Complete-2E7D32?style=flat)
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat)
+[![CI](https://github.com/its-spark-dev/amazon-review-sentiment-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/its-spark-dev/amazon-review-sentiment-ai/actions/workflows/ci.yml)
 
 Three-class sentiment analysis of Amazon Fine Food Reviews, with reproducible
 classical ML baselines, evaluation tools, and a local Streamlit inference UI.
@@ -92,11 +93,14 @@ amazon-review-sentiment-ai/
 ├── ml_baseline.py            # Labels, vectorizers, NB pipelines, metrics
 ├── m2_analysis.py            # Comparison and analysis exports
 ├── requirements.txt          # Runtime dependencies
+├── requirements-dev.txt      # Test, lint and audit tooling
+├── pyproject.toml            # pytest and ruff configuration
+├── .github/workflows/ci.yml  # GitHub Actions CI
 ├── .streamlit/config.toml    # Theme and server settings
 ├── scripts/                  # Sampling, cleaning, splitting, real-data execution
 ├── data/                     # Dataset guide; local CSVs are ignored
 ├── docs/                     # Methods, usage, and measured M2 results
-├── tests/                    # Synthetic regression tests
+├── tests/                    # Synthetic unit tests, integration/ and e2e/
 ├── models/                   # Local model artifacts; ignored
 ├── notebooks/                # Reserved for notebooks
 └── report/                   # Reserved for written deliverables
@@ -120,6 +124,30 @@ On Windows, create the environment with `py -3.11 -m venv .venv` and activate it
 with `.venv\Scripts\Activate.ps1` in PowerShell, then run the same installation,
 test, and app commands. Open Streamlit's printed local URL, normally
 `http://localhost:8501`; stop the server with `Ctrl+C`.
+
+### Tests and CI
+
+Install the development tooling and a browser for the end-to-end tests:
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m playwright install chromium
+```
+
+| Command | Runs |
+| --- | --- |
+| `ruff check .` | Lint (rules in `pyproject.toml`) |
+| `python -m pytest -m "not integration and not e2e"` | Unit tests (also runnable with `unittest`) |
+| `python -m pytest -m integration` | Data pipeline → saved model → inference → app, via `AppTest` |
+| `python -m pytest -m e2e` | Chromium against a live `streamlit run` server |
+| `python -m pytest --cov` | Everything, with coverage |
+
+All tests use generated synthetic data (`tests/synthetic.py`) and temporary
+model files; none need the dataset. GitHub Actions (`.github/workflows/ci.yml`)
+runs lint, a repository hygiene check (no datasets, models or secrets
+committed), `pip check` and `pip-audit`, and the unit tests. Integration tests
+then run on Streamlit 1.40 and the newest release, and end-to-end tests on the
+newest release. Playwright traces of any failures are uploaded as artifacts.
 
 Installation needs package access. Tests and the no-model UI do **not** require
 the dataset, credentials, or an external inference service.
