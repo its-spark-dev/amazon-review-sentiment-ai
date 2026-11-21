@@ -70,7 +70,7 @@ def test_app_predicts_with_pipeline_artifact(pipeline_outputs, app_test, expecte
     assert at.main.metric[0].label == "Confidence"
     assert at.main.metric[0].value.endswith("%")
     assert all(c in at.main.caption[-1].value for c in CLASS_LABELS)
-    assert len(at.get("vega_lite_chart")) == 1  # probability bar chart
+    assert len(synthetic.vega_charts(at)) == 1  # probability bar chart
 
 
 @pytest.mark.slow

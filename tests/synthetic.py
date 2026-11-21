@@ -75,3 +75,11 @@ def save_model(path: Path, representation: str = "bow") -> Path:
     texts, labels = train_texts()
     joblib.dump(create_nb_pipeline(representation).fit(texts, labels), path)
     return path
+
+
+def vega_charts(at) -> list:
+    """Vega-Lite chart elements in an AppTest run, across Streamlit versions.
+
+    Streamlit 1.40 reports `arrow_vega_lite_chart`; newer releases `vega_lite_chart`.
+    """
+    return [*at.get("arrow_vega_lite_chart"), *at.get("vega_lite_chart")]

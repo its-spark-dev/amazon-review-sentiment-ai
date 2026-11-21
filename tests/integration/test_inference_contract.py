@@ -29,7 +29,7 @@ def test_model_without_predict_proba_shows_label_only(tmp_path, app_test):
     assert not at.exception
     assert [s.value for s in at.main.subheader] == ["Negative"]
     assert not at.main.metric
-    assert not at.get("vega_lite_chart")
+    assert not synthetic.vega_charts(at)
 
 
 def test_model_trained_on_two_classes_reports_zero_for_missing(tmp_path, app_test):
