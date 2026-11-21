@@ -10,7 +10,7 @@ import joblib
 import streamlit as st
 from streamlit.testing.v1 import AppTest
 
-from inference import load_model, predict_review, validate_review
+from inference import load_model, model_paths, predict_review, validate_review
 from ml_baseline import CLASS_LABELS, create_nb_pipeline
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,6 +37,29 @@ class InferenceTests(unittest.TestCase):
 
     def test_missing_model_returns_none(self):
         self.assertIsNone(load_model(Path(tempfile.gettempdir()) / "no_such_model.joblib"))
+
+    def test_model_paths_lists_joblib_files_default_first(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in ("b.joblib", "sentiment_pipeline.joblib", "a.joblib", ".gitkeep", "notes.txt"):
+                (root / name).touch()
+            (root / "dir.joblib").mkdir()
+            env = {"SENTIMENT_MODEL_DIR": tmp}
+            with mock.patch.dict(os.environ, env):
+                os.environ.pop("SENTIMENT_MODEL_PATH", None)
+                names = [p.name for p in model_paths()]
+            self.assertEqual(names, ["sentiment_pipeline.joblib", "a.joblib", "b.joblib"])
+
+    def test_model_path_override_limits_to_one_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "a.joblib").touch()
+            chosen = Path(tmp) / "b.joblib"
+            chosen.touch()
+            env = {"SENTIMENT_MODEL_DIR": tmp, "SENTIMENT_MODEL_PATH": str(chosen)}
+            with mock.patch.dict(os.environ, env):
+                self.assertEqual(model_paths(), [chosen])
+                chosen.unlink()
+                self.assertEqual(model_paths(), [])
 
 
 class AppTests(unittest.TestCase):
