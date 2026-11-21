@@ -1,10 +1,10 @@
 """Smoke tests for inference helpers and the Streamlit UI; synthetic data only."""
 
 import os
+from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
-from pathlib import Path
 
 import joblib
 import streamlit as st

@@ -4,8 +4,9 @@ Call ``fit`` only with the shared training partition, then ``predict`` on
 validation/test texts. Data preparation and split creation belong upstream.
 """
 
+from collections.abc import Sequence
 from numbers import Integral
-from typing import Literal, Sequence
+from typing import Literal
 
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.metrics import (
@@ -15,7 +16,6 @@ from sklearn.metrics import (
 )
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
-
 
 CLASS_LABELS = ("Negative", "Neutral", "Positive")
 

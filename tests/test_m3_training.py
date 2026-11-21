@@ -82,9 +82,10 @@ class M3Tests(unittest.TestCase):
 
     def test_nonconvergence_is_not_silently_accepted(self):
         import warnings
+
         from sklearn.exceptions import ConvergenceWarning
         def unconverged(*args, **kwargs):
-            warnings.warn('iteration budget reached', ConvergenceWarning)
+            warnings.warn('iteration budget reached', ConvergenceWarning, stacklevel=2)
             return None
         with patch('m3_training.LogisticRegression') as factory:
             factory.return_value.fit.side_effect = unconverged
