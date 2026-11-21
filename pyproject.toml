@@ -2,6 +2,8 @@
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Repo root on sys.path so `scripts.*` and top-level modules import under plain `pytest`.
+pythonpath = ["."]
 addopts = "-ra --strict-markers"
 timeout = 300
 markers = [
@@ -28,3 +30,4 @@ ignore = ["B905"]
 [tool.ruff.lint.isort]
 # Match the existing style: plain and from-imports sorted together by module.
 force-sort-within-sections = true
+known-first-party = ["app", "inference", "ml_baseline", "m2_analysis", "m3_training", "scripts", "synthetic"]
