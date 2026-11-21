@@ -1,0 +1,179 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  MPLBACKEND: Agg
+  PYTHONHASHSEED: "0"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install ruff
+        run: python -m pip install "ruff>=0.8,<1"
+      - name: Ruff lint
+        run: ruff check --output-format=github .
+
+  hygiene:
+    name: Repository hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: No datasets, model artifacts or secrets committed
+        run: |
+          # Mirrors .gitignore: data and models must stay local (README policy).
+          bad=$(git ls-files | grep -E '\.(csv|tsv|parquet|arrow|sqlite3?|db|zip|tar|gz|pkl|pickle|joblib|pt|pth|h5|hdf5|keras|onnx|safetensors|ckpt|pem|key)$|(^|/)(\.env(\..*)?|secrets\.toml|credentials\.json|kaggle\.json)$' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::Files that must not be committed:"; echo "$bad"; exit 1
+          fi
+          extra=$(git ls-files data models | grep -vE '^(data/README\.md|models/\.gitkeep)$' || true)
+          if [ -n "$extra" ]; then
+            echo "::error::Only data/README.md and models/.gitkeep may be tracked:"; echo "$extra"; exit 1
+          fi
+      - name: Large files (>5 MB)
+        run: |
+          large=$(git ls-files -z | xargs -0 -I{} find {} -maxdepth 0 -type f -size +5M)
+          if [ -n "$large" ]; then echo "::error::Large files committed:"; echo "$large"; exit 1; fi
+
+  dependencies:
+    name: Dependency checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - name: Install runtime requirements
+        run: python -m pip install -r requirements.txt
+      - name: pip check (consistent installed set)
+        run: python -m pip check
+      - name: pip-audit (known vulnerabilities)
+        run: |
+          python -m pip install "pip-audit>=2.7,<3"
+          pip-audit -r requirements.txt --progress-spinner off
+
+  unit:
+    name: Unit tests
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Byte-compile sources
+        run: python -m compileall -q app.py inference.py ml_baseline.py m2_analysis.py m3_training.py scripts tests
+      - name: Unit tests with coverage
+        run: >
+          python -m pytest -m "not integration and not e2e"
+          --cov --cov-report=term-missing --cov-report=xml:coverage-unit.xml
+          --junitxml=test-results/unit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-results
+          path: |
+            test-results/
+            coverage-unit.xml
+
+  integration:
+    name: Integration tests
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # Lowest supported Streamlit (requirements.txt) and the newest allowed release.
+        streamlit: ["1.40.*", "latest"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Pin Streamlit ${{ matrix.streamlit }}
+        if: matrix.streamlit != 'latest'
+        run: python -m pip install "streamlit==${{ matrix.streamlit }}"
+      - run: python -m streamlit version
+      - name: Integration tests
+        run: >
+          python -m pytest -m integration
+          --cov --cov-report=term-missing --cov-report=xml:coverage-integration.xml
+          --junitxml=test-results/integration.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-results-${{ strategy.job-index }}
+          path: |
+            test-results/
+            coverage-integration.xml
+
+  e2e:
+    name: End-to-end tests
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(python -c 'from importlib.metadata import version; print(version("playwright"))')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: browser-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Install Chromium
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: python -m playwright install --with-deps chromium
+      - name: Install Chromium system deps
+        if: steps.browser-cache.outputs.cache-hit == 'true'
+        run: python -m playwright install-deps chromium
+      - name: End-to-end tests
+        run: >
+          python -m pytest -m e2e --browser chromium
+          --tracing retain-on-failure --screenshot only-on-failure
+          --output test-results/playwright --junitxml=test-results/e2e.xml
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-traces
+          path: test-results/

@@ -70,3 +70,5 @@ kaggle.json
 
 # M3 split IDs, raw predictions, charts and local model artifacts.
 /outputs/m3/
+test-results/
+coverage*.xml
