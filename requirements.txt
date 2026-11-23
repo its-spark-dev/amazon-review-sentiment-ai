@@ -1,7 +1,14 @@
-# Streamlit placeholder and reusable classical ML baseline.
-streamlit>=1.40,<2.0
-scikit-learn>=1.5,<2.0
+# Runtime dependencies for the Streamlit app (Python 3.11) and the ML scripts.
+# Exact pins: the release models (models/release_manifest.json, v0.1.0-rc1) were
+# pickled with scikit-learn 1.9.1 and verified to load and predict with this set.
+# Unpickling depends on scikit-learn, numpy, scipy and joblib, so re-verify the
+# models (or retrain and cut a new release) before changing any of those four.
+streamlit==1.67.0
+scikit-learn==1.9.1
+numpy==2.4.6
+scipy==1.17.1
+joblib==1.6.0
 # Data preparation scripts in data/ and their tests.
-pandas>=2.2,<4.0
+pandas==3.1.1
 # Local M2 report figures (no Streamlit inference integration).
-matplotlib>=3.8,<4.0
+matplotlib==3.11.2
