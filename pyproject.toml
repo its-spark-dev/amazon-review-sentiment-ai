@@ -1,0 +1,33 @@
+# Tooling configuration only; runtime dependencies live in requirements.txt.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Repo root on sys.path so `scripts.*` and top-level modules import under plain `pytest`.
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+timeout = 300
+markers = [
+    "integration: real components wired together on synthetic data (no browser)",
+    "e2e: browser tests against a live `streamlit run` server",
+    "slow: noticeably slower tests (large synthetic inputs)",
+]
+filterwarnings = ["ignore::DeprecationWarning:streamlit.*"]
+
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*", ".venv/*"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+extend-exclude = ["notebooks"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]
+# zip(strict=...) would change runtime behaviour of existing analysis code.
+ignore = ["B905"]
+
+[tool.ruff.lint.isort]
+# Match the existing style: plain and from-imports sorted together by module.
+force-sort-within-sections = true
+known-first-party = ["app", "inference", "ml_baseline", "m2_analysis", "m3_training", "scripts", "synthetic"]

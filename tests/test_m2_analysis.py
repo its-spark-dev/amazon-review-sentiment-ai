@@ -9,8 +9,8 @@ import sys
 import tempfile
 import unittest
 
-from ml_baseline import CLASS_LABELS, create_nb_pipeline
 from m2_analysis import export_results, informative_features, run_baselines
+from ml_baseline import CLASS_LABELS, create_nb_pipeline
 
 
 class M2Tests(unittest.TestCase):

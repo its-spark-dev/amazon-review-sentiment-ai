@@ -1,10 +1,10 @@
 """Smoke tests for inference helpers and the Streamlit UI; synthetic data only."""
 
 import os
+from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
-from pathlib import Path
 
 import joblib
 import streamlit as st
@@ -49,6 +49,12 @@ class InferenceTests(unittest.TestCase):
                 os.environ.pop("SENTIMENT_MODEL_PATH", None)
                 names = [p.name for p in model_paths()]
             self.assertEqual(names, ["sentiment_pipeline.joblib", "a.joblib", "b.joblib"])
+
+    def test_missing_model_dir_lists_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.dict(os.environ, {"SENTIMENT_MODEL_DIR": str(Path(tmp) / "absent")}):
+            os.environ.pop("SENTIMENT_MODEL_PATH", None)
+            self.assertEqual(model_paths(), [])
 
     def test_model_path_override_limits_to_one_file(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -176,7 +182,7 @@ class ModelSelectionTests(unittest.TestCase):
         at.text_area(key="review").input(text)
         at.button[-1].click().run()
         self.assertFalse(at.exception)
-        return [s.value for s in at.subheader]
+        return [s.value for s in at.main.subheader]
 
     def test_empty_directory_shows_notice(self):
         at = self.run_app()
@@ -212,6 +218,76 @@ class ModelSelectionTests(unittest.TestCase):
         self.assertFalse(at.exception)
         self.assertEqual(at.selectbox(key="model_choice").value, str(self.root / "a.joblib"))
         self.assertFalse(at.button[-1].disabled)
+
+    def test_sidebar_shows_selected_model_and_count(self):
+        for name in ("sentiment_pipeline.joblib", "other.joblib"):
+            joblib.dump(fitted_model(), self.root / name)
+        at = self.run_app()
+        captions = [c.value for c in at.sidebar.caption]
+        self.assertIn(f"`{self.root / 'sentiment_pipeline.joblib'}`", captions)
+        self.assertIn("2 models available", captions)
+        at.selectbox(key="model_choice").select(str(self.root / "other.joblib"))
+        self.predict(at, "great tasty love")
+        self.assertIn(f"`{self.root / 'other.joblib'}`", [c.value for c in at.sidebar.caption])
+
+    def test_selection_persists_across_reruns(self):
+        for name in ("a.joblib", "b.joblib"):
+            joblib.dump(fitted_model(), self.root / name)
+        at = self.run_app()
+        at.selectbox(key="model_choice").select(str(self.root / "b.joblib"))
+        self.predict(at, "great tasty love")
+        at.run()
+        self.assertEqual(at.selectbox(key="model_choice").value, str(self.root / "b.joblib"))
+
+    def test_model_added_while_running_appears_in_selector(self):
+        joblib.dump(fitted_model(), self.root / "a.joblib")
+        at = self.run_app()
+        self.assertEqual(len(at.selectbox), 0)
+        joblib.dump(fitted_model(), self.root / "b.joblib")
+        at.run()
+        self.assertFalse(at.exception)
+        self.assertEqual(at.selectbox(key="model_choice").options, ["a", "b"])
+        self.assertIn("2 models available", [c.value for c in at.sidebar.caption])
+
+    def test_corrupt_selection_reports_error_but_allows_switching(self):
+        joblib.dump(fitted_model(), self.root / "a_good.joblib")
+        (self.root / "b_corrupt.joblib").write_bytes(b"not a joblib file")
+        at = self.run_app()
+        self.assertFalse(at.error)
+        at.selectbox(key="model_choice").select(str(self.root / "b_corrupt.joblib"))
+        self.assertEqual(self.predict(at, "great tasty love"), [])  # no prediction from a broken model
+        self.assertIn("b_corrupt.joblib", at.error[0].value)
+        # Submitting is how a form-held selection is applied, so it must stay possible.
+        self.assertFalse(at.button[-1].disabled)
+        at.selectbox(key="model_choice").select(str(self.root / "a_good.joblib"))
+        self.assertIn("Positive", self.predict(at, "great tasty love"))
+        self.assertFalse(at.error)
+
+    def test_single_corrupt_model_disables_submit(self):
+        (self.root / "only.joblib").write_bytes(b"not a joblib file")
+        at = self.run_app()
+        self.assertIn("only.joblib", at.error[0].value)
+        self.assertTrue(at.button[-1].disabled)
+
+    def test_each_model_is_cached_separately(self):
+        for name in ("a.joblib", "b.joblib"):
+            joblib.dump(fitted_model(), self.root / name)
+        with mock.patch("inference.load_model", wraps=load_model) as loader:
+            at = self.run_app()
+            for name in ("b.joblib", "a.joblib", "b.joblib"):
+                at.selectbox(key="model_choice").select(str(self.root / name))
+                self.predict(at, "great tasty love")
+            self.assertEqual(sorted(Path(c.args[0]).name for c in loader.call_args_list),
+                             ["a.joblib", "b.joblib"])
+
+    def test_model_path_override_hides_selector(self):
+        for name in ("a.joblib", "b.joblib"):
+            joblib.dump(fitted_model(), self.root / name)
+        os.environ["SENTIMENT_MODEL_PATH"] = str(self.root / "b.joblib")  # restored by patch.dict
+        at = self.run_app()
+        self.assertEqual(len(at.selectbox), 0)
+        self.assertIn(f"`{self.root / 'b.joblib'}`", [c.value for c in at.sidebar.caption])
+        self.assertIn("Positive", self.predict(at, "great tasty love"))
 
 
 if __name__ == "__main__":

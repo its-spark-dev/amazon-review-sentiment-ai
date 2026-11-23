@@ -10,9 +10,9 @@ Usage:
 
 import argparse
 import html
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
 
 import pandas as pd
 
