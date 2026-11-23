@@ -25,11 +25,13 @@ import joblib
 from sklearn.utils.validation import check_is_fitted
 
 from ml_baseline import CLASS_LABELS
+from scripts.clean_reviews import clean_text
 
 MODELS_DIR = Path(__file__).parent / "models"
 DEFAULT_MODEL_PATH = MODELS_DIR / "sentiment_pipeline.joblib"
 MAX_REVIEW_CHARS = 5000
 RELEASE_MANIFEST = MODELS_DIR / "release_manifest.json"
+REPORT_MODEL_RELEASE = "v0.2.0-rc2"
 RELEASE_URL = "https://github.com/its-spark-dev/amazon-review-sentiment-ai/releases/download/{tag}/{name}"
 _SHA256_RE = re.compile(r"[0-9a-f]{64}")
 _CHUNK = 1 << 20
@@ -85,6 +87,9 @@ def predict_review(model, text: str) -> dict:
     does not expose ``predict_proba``.
     """
     text = validate_review(text)
+    text = clean_text(text)
+    if not text:
+        raise ValueError("Enter a review containing text after HTML cleanup.")
     label = str(model.predict([text])[0])
     probabilities = None
     if hasattr(model, "predict_proba"):

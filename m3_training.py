@@ -23,6 +23,22 @@ def vectorizer(representation, max_features):
     return factory(max_features=max_features, dtype=np.float64)
 
 
+def fit_features(vec, texts):
+    """Resolve max_features ties by lexical order using training text only.
+
+    Keep standard sklearn vectorizers in serialized pipelines, so loading a
+    model does not require custom estimator classes or private sklearn APIs.
+    """
+    counts = CountVectorizer(dtype=np.float64)
+    matrix = counts.fit_transform(texts)
+    names = counts.get_feature_names_out()
+    frequencies = np.asarray(matrix.sum(axis=0)).ravel()
+    ranked = sorted(zip(names, frequencies), key=lambda item: (-item[1], item[0]))
+    chosen = sorted(str(name) for name, _ in ranked[:vec.max_features])
+    vec.set_params(vocabulary={name: index for index, name in enumerate(chosen)})
+    return vec.fit_transform(texts)
+
+
 def disjoint(left, right):
     for column in ('Id', 'Text'):
         if set(left[column]) & set(right[column]):
@@ -81,7 +97,7 @@ def select_models(training, *, seed=48, max_features=10000, epochs=15):
             validation.Sentiment, majority.predict([[0]] * len(validation)))['macro_f1']
         for representation in ('bow', 'tfidf'):
             vec = vectorizer(representation, max_features)
-            x = vec.fit_transform(fit.Text)
+            x = fit_features(vec, fit.Text)
             vx = vec.transform(validation.Text)
             nb = MultinomialNB(alpha=1.0).fit(x, fit.Sentiment)
             selection['validation_scores'][representation + '_nb'] = evaluate_predictions(
@@ -126,7 +142,7 @@ def final_comparison(training, test, selection):
             else:
                 representation, kind = name.split('_')
                 vec = vectorizer(representation, selection['max_features'])
-                x = vec.fit_transform(training.Text)
+                x = fit_features(vec, training.Text)
                 if kind == 'nb':
                     classifier = MultinomialNB(alpha=1.0).fit(x, training.Sentiment)
                 elif kind == 'lr':
