@@ -53,3 +53,42 @@ def test_app_serves_m3_artifact(m3_output, app_test, name):
     assert not at.exception
     assert at.main.subheader[0].value in CLASS_LABELS
     assert at.main.metric[0].value.endswith("%")
+
+
+@pytest.fixture
+def app_on_dir(monkeypatch):
+    """Run app.py with model discovery over a directory (no single-file override)."""
+    from pathlib import Path
+
+    import streamlit as st
+    from streamlit.testing.v1 import AppTest
+
+    st.cache_resource.clear()
+    root = Path(__file__).resolve().parents[2]
+
+    def run(directory):
+        monkeypatch.delenv("SENTIMENT_MODEL_PATH", raising=False)
+        monkeypatch.setenv("SENTIMENT_MODEL_DIR", str(directory))
+        return AppTest.from_file(str(root / "app.py"), default_timeout=60).run()
+
+    yield run
+    st.cache_resource.clear()
+
+
+def test_app_discovers_every_m3_artifact(m3_output, app_on_dir):
+    at = app_on_dir(m3_output)
+    assert not at.exception and not at.error
+    selector = at.selectbox(key="model_choice")
+    assert sorted(selector.options) == sorted(M3_MODELS)
+    assert f"{len(M3_MODELS)} models available" in [c.value for c in at.sidebar.caption]
+
+
+def test_selector_serves_each_m3_artifact(m3_output, app_on_dir):
+    at = app_on_dir(m3_output)
+    for name in M3_MODELS:
+        at.selectbox(key="model_choice").select(str(m3_output / f"{name}.joblib"))
+        at.text_area(key="review").input(synthetic.PROBES["Negative"])
+        at.button[-1].click().run()
+        assert not at.exception and not at.error, name
+        assert any(f"{name}.joblib" in c.value for c in at.sidebar.caption), name
+        assert at.main.subheader[0].value in CLASS_LABELS, name

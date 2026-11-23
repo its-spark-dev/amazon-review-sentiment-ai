@@ -1,4 +1,4 @@
-"""Live `streamlit run` servers for browser tests: one with a model, one without."""
+"""Live `streamlit run` servers for browser tests: one model, no model, and a models directory."""
 
 from contextlib import contextmanager
 import os
@@ -23,9 +23,17 @@ def _free_port() -> int:
 
 
 @contextmanager
-def streamlit_server(model_path: Path, log_path: Path, timeout: float = 60):
+def streamlit_server(log_path: Path, *, model_path: Path | None = None, model_dir: Path | None = None,
+                     timeout: float = 60):
+    """Serve app.py with either one model file (SENTIMENT_MODEL_PATH) or a models directory."""
     port = _free_port()
-    env = {**os.environ, "SENTIMENT_MODEL_PATH": str(model_path), "MPLBACKEND": "Agg"}
+    # Never inherit the developer's model settings: each server sees only what the test configures.
+    env = {k: v for k, v in os.environ.items() if k not in ("SENTIMENT_MODEL_PATH", "SENTIMENT_MODEL_DIR")}
+    env["MPLBACKEND"] = "Agg"
+    if model_path is not None:
+        env["SENTIMENT_MODEL_PATH"] = str(model_path)
+    if model_dir is not None:
+        env["SENTIMENT_MODEL_DIR"] = str(model_dir)
     command = [sys.executable, "-m", "streamlit", "run", str(ROOT / "app.py"),
                "--server.port", str(port), "--server.address", "127.0.0.1",
                "--server.headless", "true", "--browser.gatherUsageStats", "false",
@@ -60,14 +68,35 @@ def streamlit_server(model_path: Path, log_path: Path, timeout: float = 60):
 def app_url(tmp_path_factory):
     root = tmp_path_factory.mktemp("e2e_model")
     model = synthetic.save_model(root / "sentiment_pipeline.joblib")
-    with streamlit_server(model, root / "streamlit.log") as url:
+    with streamlit_server(root / "streamlit.log", model_path=model) as url:
         yield url
 
 
 @pytest.fixture(scope="session")
 def app_url_no_model(tmp_path_factory):
     root = tmp_path_factory.mktemp("e2e_no_model")
-    with streamlit_server(root / "missing.joblib", root / "streamlit.log") as url:
+    with streamlit_server(root / "streamlit.log", model_path=root / "missing.joblib") as url:
+        yield url
+
+
+@pytest.fixture(scope="session")
+def models_dir(tmp_path_factory):
+    """A models directory like a real M3 run: the default model, a second model and a broken file.
+
+    ``b_flipped`` swaps Positive/Negative so switching models visibly changes the prediction;
+    ``c_corrupt`` is not a joblib file, exercising the per-model load error.
+    """
+    root = tmp_path_factory.mktemp("e2e_models")
+    synthetic.save_model(root / "sentiment_pipeline.joblib")
+    synthetic.save_model(root / "b_flipped.joblib", flipped=True)
+    (root / "c_corrupt.joblib").write_bytes(b"not a joblib file")
+    return root
+
+
+@pytest.fixture(scope="session")
+def app_url_multi_model(tmp_path_factory, models_dir):
+    log = tmp_path_factory.mktemp("e2e_multi") / "streamlit.log"
+    with streamlit_server(log, model_dir=models_dir) as url:
         yield url
 
 

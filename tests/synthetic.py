@@ -70,9 +70,18 @@ def train_texts(n_per_class: int = 30, seed: int = 1) -> tuple[list[str], list[s
     return texts, labels
 
 
-def save_model(path: Path, representation: str = "bow") -> Path:
-    """Fit a small NB pipeline on synthetic text and save it like the real runner."""
+FLIP = {"Positive": "Negative", "Negative": "Positive", "Neutral": "Neutral"}
+
+
+def save_model(path: Path, representation: str = "bow", flipped: bool = False) -> Path:
+    """Fit a small NB pipeline on synthetic text and save it like the real runner.
+
+    ``flipped`` swaps Positive/Negative labels, giving a second model whose predictions
+    visibly differ, so tests can tell which model actually served a request.
+    """
     texts, labels = train_texts()
+    if flipped:
+        labels = [FLIP[label] for label in labels]
     joblib.dump(create_nb_pipeline(representation).fit(texts, labels), path)
     return path
 
