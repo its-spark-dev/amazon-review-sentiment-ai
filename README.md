@@ -3,7 +3,6 @@
 ![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=flat)
 ![M2 Complete](https://img.shields.io/badge/M2-Complete-2E7D32?style=flat)
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat)
-[![CI](https://github.com/its-spark-dev/amazon-review-sentiment-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/its-spark-dev/amazon-review-sentiment-ai/actions/workflows/ci.yml)
 
 Three-class sentiment analysis of Amazon Fine Food Reviews, with reproducible
 classical ML baselines, evaluation tools, and a local Streamlit inference UI.
