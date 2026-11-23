@@ -1,9 +1,10 @@
 """Model loading and single-review inference for the Streamlit app.
 
-The app never trains models. It loads a fitted scikit-learn pipeline that the
-ML workflow saved locally (default ``models/sentiment_pipeline.joblib``, or the
-path in ``SENTIMENT_MODEL_PATH``). Only load model files your team produced:
-joblib/pickle files can execute code when loaded.
+The app never trains models. It loads fitted scikit-learn pipelines that the
+ML workflow saved locally: every ``*.joblib`` file in ``models/`` (or the
+directory in ``SENTIMENT_MODEL_DIR``), or only the single file named by
+``SENTIMENT_MODEL_PATH`` when that is set. Only load model files your team
+produced: joblib/pickle files can execute code when loaded.
 """
 
 import os
@@ -14,13 +15,29 @@ from sklearn.utils.validation import check_is_fitted
 
 from ml_baseline import CLASS_LABELS
 
-DEFAULT_MODEL_PATH = Path(__file__).parent / "models" / "sentiment_pipeline.joblib"
+MODELS_DIR = Path(__file__).parent / "models"
+DEFAULT_MODEL_PATH = MODELS_DIR / "sentiment_pipeline.joblib"
 MAX_REVIEW_CHARS = 5000
 
 
 def model_path() -> Path:
     """Return the configured model path (env override, else the default)."""
     return Path(os.environ.get("SENTIMENT_MODEL_PATH", DEFAULT_MODEL_PATH))
+
+
+def model_paths() -> list[Path]:
+    """Return the available model artifacts, default model first.
+
+    ``SENTIMENT_MODEL_PATH`` restricts the app to that one file. Otherwise every
+    ``*.joblib`` file in ``SENTIMENT_MODEL_DIR`` (default ``models/``) is listed
+    by name, with ``sentiment_pipeline.joblib`` first when present.
+    """
+    if "SENTIMENT_MODEL_PATH" in os.environ:
+        path = model_path()
+        return [path] if path.is_file() else []
+    directory = Path(os.environ.get("SENTIMENT_MODEL_DIR", MODELS_DIR))
+    paths = sorted(p for p in directory.glob("*.joblib") if p.is_file())
+    return sorted(paths, key=lambda p: p.name != DEFAULT_MODEL_PATH.name)
 
 
 def load_model(path: Path):

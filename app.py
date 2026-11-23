@@ -1,9 +1,11 @@
 """Streamlit app: enter an Amazon food review and get a three-class sentiment."""
 
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
 
-from inference import MAX_REVIEW_CHARS, load_model, model_path, predict_review
+from inference import MAX_REVIEW_CHARS, load_model, model_paths, predict_review
 from ml_baseline import CLASS_LABELS
 
 st.set_page_config(page_title="Amazon Review Sentiment AI")
@@ -25,7 +27,7 @@ def get_model(path: str, file_version: tuple):
     return load_model(path)
 
 
-def sidebar(path) -> None:
+def sidebar(path, count: int) -> None:
     with st.sidebar:
         st.header("About")
         st.write(
@@ -35,33 +37,42 @@ def sidebar(path) -> None:
         st.subheader("Labels")
         st.markdown("- 1–2 stars: **Negative**\n- 3 stars: **Neutral**\n- 4–5 stars: **Positive**")
         st.subheader("Model")
-        st.caption(f"`{path}`")
+        st.caption(f"`{path}`" if path else "No model available")
+        if count > 1:
+            st.caption(f"{count} models available")
+
+
+def load_selected(path):
+    """Load the chosen artifact through the cache, or show an error and return None."""
+    try:
+        # Check outside the cache: a missing artifact must not cache None.
+        if not path.is_file():
+            return None
+        stat = path.stat()
+        version = (stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size, stat.st_ino)
+        return get_model(str(path.resolve()), version)
+    except Exception as exc:  # corrupt or incompatible artifact
+        st.error(f"Could not load the model `{path.name}`: {exc}")
+        return None
 
 
 def main() -> None:
-    path = model_path()
-    sidebar(path)
+    paths = model_paths()  # re-scanned every rerun: additions/removals show up
+    options = [str(p) for p in paths]
+    if st.session_state.get("model_choice") not in options:
+        st.session_state.pop("model_choice", None)  # removed file: fall back to default
+    selected = Path(st.session_state.get("model_choice", options[0])) if options else None
+    sidebar(selected, len(paths))
 
     st.title("Amazon Review Sentiment AI")
     st.caption("Classify a food product review as Negative, Neutral, or Positive.")
 
-    try:
-        # Check outside the cache: a missing artifact must not cache None.
-        if path.is_file():
-            stat = path.stat()
-            version = (stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size, stat.st_ino)
-            model = get_model(str(path.resolve()), version)
-        else:
-            model = None
-    except Exception as exc:  # corrupt or incompatible artifact
-        model = None
-        st.error(f"Could not load the model: {exc}")
-    else:
-        if model is None:
-            st.info(
-                "No trained model found yet. Save a fitted pipeline to "
-                f"`{path.name}` in `models/` (or set `SENTIMENT_MODEL_PATH`) to enable predictions."
-            )
+    model = load_selected(selected) if selected else None
+    if not paths:
+        st.info(
+            "No trained model found yet. Save a fitted pipeline as a `.joblib` file "
+            "in `models/` (or set `SENTIMENT_MODEL_PATH`) to enable predictions."
+        )
 
     st.write("Try a sample:")
     cols = st.columns(len(SAMPLE_REVIEWS))
@@ -77,7 +88,14 @@ def main() -> None:
             max_chars=MAX_REVIEW_CHARS,
             placeholder="Paste or type a product review…",
         )
-        submitted = st.form_submit_button("Analyze sentiment", type="primary", disabled=model is None)
+        if len(paths) > 1:
+            left, right = st.columns([2, 1], vertical_alignment="bottom")
+            left.selectbox("Model", options, key="model_choice", format_func=lambda p: Path(p).stem)
+        else:
+            right = st.container()
+        submitted = right.form_submit_button(
+            "Analyze sentiment", type="primary", disabled=model is None, use_container_width=True
+        )
 
     if not submitted or model is None:
         return

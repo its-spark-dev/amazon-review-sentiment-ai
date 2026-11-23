@@ -76,9 +76,12 @@ loss curves and timed comparisons. See [M3 results](docs/M3_RESULTS.md) and
 
 **No dataset or trained model artifact is committed.** A fresh clone runs the UI
 with a no-model notice and analysis disabled. Predictions require a compatible
-locally saved pipeline at `models/sentiment_pipeline.joblib`, or the path set by
-`SENTIMENT_MODEL_PATH`. Model additions, replacements, and removals are detected
-on the next app rerun; unchanged files reuse the cached resource.
+locally saved pipeline. The app lists every `*.joblib` file in `models/` (or the
+directory set by `SENTIMENT_MODEL_DIR`); when more than one is found, a model
+selector appears next to the submit button, with `sentiment_pipeline.joblib`
+preselected if present. Setting `SENTIMENT_MODEL_PATH` restricts the app to that
+single file. Model additions, replacements, and removals are detected on the next
+app rerun; unchanged files reuse the cached resource.
 
 API and usage details: [ML baseline](docs/ML_BASELINE.md) ·
 [M2 execution and analysis](docs/M2_ANALYSIS.md).
