@@ -148,9 +148,10 @@ python -m playwright install chromium
 All tests use generated synthetic data (`tests/synthetic.py`) and temporary
 model files; none need the dataset. GitHub Actions (`.github/workflows/ci.yml`)
 runs lint, a repository hygiene check (no datasets, models or secrets
-committed), `pip check` and `pip-audit`, and the unit tests. Integration tests
-then run on Streamlit 1.40 and the newest release, and end-to-end tests on the
-newest release. Playwright traces of any failures are uploaded as artifacts.
+committed), `pip check` and `pip-audit`, and the unit tests. Integration and
+end-to-end tests then run against the exact versions pinned in `requirements.txt`,
+the set the release models were verified with. Playwright traces of any failures
+are uploaded as artifacts.
 
 Installation needs package access. Tests and the no-model UI do **not** require
 the dataset, credentials, or an external inference service.
