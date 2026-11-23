@@ -25,7 +25,8 @@ No dataset is downloaded, resampled, cleaned, or repartitioned by this runner.
 3. Use the same maximum 10,000 word-unigram features in M3 comparisons, with
    lowercase/default tokenization and no stop-word list. TF-IDF retains its
    smoothed IDF/L2 defaults. This is an explicitly different feature budget from
-   the preserved M2 36,995-feature experiment. No dense corpus conversion is used.
+   the preserved M2 36,995-feature experiment. Tied counts are resolved lexically; vocabulary selection is training-only.
+   No dense corpus conversion is used.
 4. Select LR separately for BoW and TF-IDF over C={0.5,2.0} and class_weight=
    {None,balanced}. Solver is lbfgs with max_iter=5000; nonconvergence raises an
    error instead of being silently accepted. The iteration budget was raised
@@ -86,3 +87,13 @@ are refused. Override with `--output-dir`; `--epochs`, `--max-features` and
 Artifacts include review text and split identities. Keep the entire output folder
 local. Only load trusted joblib files. The final M3 team PDF, model/app integration,
 UI screenshots and cloud deployment are separate work.
+
+## Canonical report/demo version
+
+The current report/demo release is **v0.2.0-rc2**. See [M3 results](M3_RESULTS.md)
+and [machine-readable provenance](M3_RELEASE.json). Earlier November 15 results
+and rc1 are historical and must not be mixed into the current tables/figures.
+Use `--output-dir outputs/m3/release-rc2` for a fresh canonical rebuild. The runner
+exports `model_hashes.json` as well as the existing records. Do not overwrite an
+existing release: any intentional retraining needs a new version and updated
+provenance/manifest. See the README for the hash-verified release demo command.

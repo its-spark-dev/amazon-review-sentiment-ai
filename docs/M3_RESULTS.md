@@ -1,121 +1,191 @@
-# M3 ML results — November 15, 2026
+# M3 report and demonstration — canonical release v0.2.0-rc2
 
-This is the ML handoff, not confirmation of M3 submission or app completion.
-The original 37,023-row training and 9,255-row test CSVs were not modified.
-The inner grouped seed-48 split contains 29,622 fit and 7,401 validation rows.
-See [training protocol](M3_TRAINING.md) for executable commands and exact rules.
+Updated November 23, 2026. This replaces the November 15 M3 experimental results
+for report/demo parity. It is not confirmation of submission or cloud deployment.
+All current tables, timings, loss records and five model artifacts below belong
+to ONE deterministic re-execution. M2 results remain unchanged in their own doc.
+Machine-readable source: [M3_RELEASE.json](M3_RELEASE.json).
 
-## Validation-selected settings
+## Why the older report and rc1 differed
 
-The primary criterion was macro-F1 across all three classes. Choices were written
-to local selection.json before any final test evaluation. No M3 test scores were
-used to adjust settings. All M3 vectorizers cap vocabulary at 10,000 features;
-M2's uncapped 36,995-feature results are preserved as a different experiment.
+Forensic comparison found 9,783 shared vocabulary tokens and 217 exclusive tokens
+on each side of the 10,000-feature cutoff. All exclusive tokens occur exactly
+seven times in the same outer training corpus. Shared NB feature-count columns
+match exactly, and class counts also match. This identifies tied-frequency feature
+selection as the first demonstrated divergence, not a changed label mapping or
+proof of a changed sample. sklearn's default max_features ranking uses an unstable
+argsort for equal counts; the exact machine/build conditions of the rc1 run were
+not recorded, so we do not claim to reconstruct every cause of its final weights.
 
-| Configuration | Chosen setting | Validation Macro-F1 |
-| --- | --- | ---: |
-| majority | `Fixed baseline` | 0.2921 |
-| bow_nb | `Fixed baseline` | 0.6063 |
-| bow_lr | `{"C": 0.5, "class_weight": null, "validation_macro_f1": 0.6014775980751442}` | 0.6015 |
-| tfidf_nb | `Fixed baseline` | 0.3480 |
-| tfidf_lr | `{"C": 0.5, "class_weight": "balanced", "validation_macro_f1": 0.6166239048051888}` | 0.6166 |
-| tfidf_mlp | `{"epochs": 11, "validation_macro_f1": 0.6097517546887548}` | 0.6098 |
+The new fitter explicitly ranks training tokens by descending count, then lexical
+order, retaining a fixed vocabulary in standard sklearn estimators. Selection
+fits this rule only on inner training. Final fitting repeats it on full outer
+training. We reran validation selection and final evaluation without changing the
+candidate grid, architecture, data split or metric to improve observed test scores.
+The source correction is motivated by reproducibility, not test-based tuning.
+Historical rc1 is retained, but is not the current report/demo release.
 
-The **validation-selected recommendation is TF-IDF Logistic Regression**, with
-C=0.5 and balanced class weights. The MLP uses epoch 11 from the fixed 1–15 epoch
-budget. The architecture is 10,000 sparse TF-IDF inputs -> 32 ReLU hidden units
--> 3 softmax probabilities. Adam uses learning rate 0.001, alpha 0.001, batch
-size 256 and random_state=48. Final models were refitted on all outer training
-rows with frozen settings. The MLP is a feedforward network, not a sequence model.
+## Frozen protocol
 
-## Shared held-out comparison
+50,000 seed-48 sampled reviews -> 46,278 cleaned rows -> 37,023 outer train /
+9,255 outer test. Training-only grouped seed-48 validation: 29,622 fit / 7,401
+validation rows. No identical cleaned Text or Id crosses partitions. The outer
+test hashes are unchanged from M2. The old test has already been inspected;
+this rerun is not a new unseen prospective evaluation.
+
+All models use at most 10,000 lowercase word unigrams, no stop-word list. BoW
+uses counts and TF-IDF uses smoothed IDF/L2. LR searches C={0.5,2.0} and weights
+{None,balanced}. NB alpha=1.0 is fixed. Vocabulary/IDF selection never fits on
+validation/test. Recommendation and settings are frozen by validation macro-F1
+before final test evaluation, followed by full outer-training refits.
+
+| Model | Validation Macro-F1 | Selected setting |
+| --- | ---: | --- |
+| majority | 0.2921 | `{}` |
+| bow_nb | 0.6070 | `{}` |
+| bow_lr | 0.6022 | `{"C": 0.5, "class_weight": null}` |
+| tfidf_nb | 0.3480 | `{}` |
+| tfidf_lr | 0.6170 | `{"C": 0.5, "class_weight": "balanced"}` |
+| tfidf_mlp | 0.6057 | `{"epochs": 13}` |
+
+The validation-selected recommendation is **TF-IDF LR**, C=0.5, balanced weights.
+MLP architecture: 10,000 TF-IDF inputs -> 32 ReLU hidden units -> three softmax
+probabilities. Adam: learning_rate_init=0.001, alpha=0.001, batch_size=256,
+shuffle=True, seed 48. The small fixed hidden layer bounds local CPU/memory cost;
+its width was not searched. MLP epoch selection uses Macro-F1, not loss.
+
+## Held-out comparison from the canonical run
 
 | Model | Accuracy | Macro precision | Macro recall | Macro-F1 | Training seconds |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | majority | 0.7797 | 0.2599 | 0.3333 | 0.2921 | 0.009 |
-| bow_nb | 0.8165 | 0.6092 | 0.6245 | 0.6163 | 0.703 |
-| tfidf_nb | 0.7954 | 0.5461 | 0.3721 | 0.3639 | 0.682 |
-| bow_lr | 0.8354 | 0.6297 | 0.5822 | 0.6008 | 5.498 |
-| tfidf_lr | 0.7695 | 0.5958 | 0.6835 | 0.6161 | 1.290 |
-| tfidf_mlp | 0.8443 | 0.6511 | 0.5872 | 0.6089 | 2.730 |
+| bow_nb | 0.8167 | 0.6103 | 0.6260 | 0.6177 | 1.316 |
+| tfidf_nb | 0.7956 | 0.5468 | 0.3726 | 0.3647 | 1.368 |
+| bow_lr | 0.8351 | 0.6278 | 0.5808 | 0.5991 | 5.901 |
+| tfidf_lr | 0.7693 | 0.5957 | 0.6838 | 0.6162 | 2.106 |
+| tfidf_mlp | 0.8401 | 0.6374 | 0.5828 | 0.6021 | 3.855 |
 
-Precision/recall/F1 are macro averages with undefined classes zero-filled. The
-reported seconds include training feature extraction plus classifier fitting,
-using one numerical-library thread, and exclude selection, test prediction and
-export. These are single-run timings on the local arm64 environment, not repeated
-benchmarks. Selection including validation/loss logging took 25.786 seconds.
-
-MLP has the highest measured test accuracy (84.43%), while capped BoW NB has the
-highest test Macro-F1 (0.6163), narrowly above TF-IDF LR (0.6161). That numerical
-difference is not evidence of statistical superiority and does not replace the
-validation-based recommendation. The MLP does not outperform all classical
-baselines on the primary metric. Balanced TF-IDF LR trades Positive precision/
-recall balance for better minority recognition; its lower accuracy should be
-interpreted together with per-class scores.
-
-## Per-class test results
+Seconds measure one-thread training feature extraction (including deterministic
+vocabulary selection) plus classifier fit. Selection, loss logging, test inference,
+serialization and plotting are excluded. Timings are one local run, not repeated
+benchmarks. MLP has the highest test accuracy, while BoW NB has the highest test
+Macro-F1; neither observation overrides the validation-based recommendation.
+M2 used an uncapped 36,995-feature budget, so changes cannot be attributed solely
+to classifier choice. This M3 comparison uses a shared 10,000-feature budget.
 
 | Model | Class | Precision | Recall | F1 |
 | --- | --- | ---: | ---: | ---: |
 | majority | Negative | 0.0000 | 0.0000 | 0.0000 |
 | majority | Neutral | 0.0000 | 0.0000 | 0.0000 |
 | majority | Positive | 0.7797 | 1.0000 | 0.8762 |
-| bow_nb | Negative | 0.6221 | 0.6506 | 0.6361 |
-| bow_nb | Neutral | 0.2915 | 0.3277 | 0.3085 |
-| bow_nb | Positive | 0.9140 | 0.8951 | 0.9044 |
-| tfidf_nb | Negative | 0.8441 | 0.1180 | 0.2070 |
+| bow_nb | Negative | 0.6224 | 0.6514 | 0.6366 |
+| bow_nb | Neutral | 0.2945 | 0.3319 | 0.3121 |
+| bow_nb | Positive | 0.9141 | 0.8948 | 0.9043 |
+| tfidf_nb | Negative | 0.8457 | 0.1195 | 0.2093 |
 | tfidf_nb | Neutral | 0.0000 | 0.0000 | 0.0000 |
-| tfidf_nb | Positive | 0.7944 | 0.9983 | 0.8847 |
-| bow_lr | Negative | 0.6729 | 0.5965 | 0.6324 |
-| bow_lr | Neutral | 0.3253 | 0.2090 | 0.2545 |
-| bow_lr | Positive | 0.8911 | 0.9410 | 0.9153 |
-| tfidf_lr | Negative | 0.5913 | 0.7010 | 0.6415 |
-| tfidf_lr | Neutral | 0.2400 | 0.5452 | 0.3333 |
-| tfidf_lr | Positive | 0.9562 | 0.8042 | 0.8736 |
-| tfidf_mlp | Negative | 0.6905 | 0.6168 | 0.6516 |
-| tfidf_mlp | Neutral | 0.3720 | 0.1949 | 0.2558 |
-| tfidf_mlp | Positive | 0.8908 | 0.9500 | 0.9195 |
+| tfidf_nb | Positive | 0.7945 | 0.9983 | 0.8848 |
+| bow_lr | Negative | 0.6717 | 0.5965 | 0.6319 |
+| bow_lr | Neutral | 0.3208 | 0.2048 | 0.2500 |
+| bow_lr | Positive | 0.8910 | 0.9410 | 0.9153 |
+| tfidf_lr | Negative | 0.5907 | 0.7025 | 0.6417 |
+| tfidf_lr | Neutral | 0.2405 | 0.5452 | 0.3338 |
+| tfidf_lr | Positive | 0.9558 | 0.8036 | 0.8731 |
+| tfidf_mlp | Negative | 0.6784 | 0.6101 | 0.6424 |
+| tfidf_mlp | Neutral | 0.3426 | 0.1921 | 0.2462 |
+| tfidf_mlp | Positive | 0.8911 | 0.9461 | 0.9178 |
 
-## MLP loss and limitations
+Confusion matrices: rows=true, columns=predicted, order Negative/Neutral/Positive.
 
-The local `mlp_loss.png` shows unregularized cross-entropy after every epoch on
-inner-fit and validation rows. Training loss falls from 0.5875 to 0.1082, while
-validation loss reaches its minimum around epoch 6 (0.4025) and rises to 0.5108
-by epoch 15. This divergence is consistent with overfitting. Epoch 11 is selected
-because validation Macro-F1 (0.6098), not validation loss, was the predeclared
-criterion. At that epoch the train/validation losses are 0.1579/0.4503.
+**majority**
 
-The MLP can model nonlinear feature combinations, which the linear LR and the
-NB conditional-independence formulation do not represent in the same way. This
-is an architectural advantage, not a demonstrated universal performance gain.
-Its limitations include more parameters/epoch choices, overfitting, less direct
-feature interpretation, and lack of word-order information. The MLP's Neutral
-recall is only 19.49%, compared with 54.52% for balanced TF-IDF LR. Loss curves
-are diagnostics from inner training, not curves from the final full-train refit.
+```text
+[0, 0, 1331]
+[0, 0, 708]
+[0, 0, 7216]
+```
 
-Future experiments must use inner validation; this shared test was already
-inspected in M2 and is not an unseen prospective evaluation. Small single-split
-score differences and single-seed neural-network results require caution. No
-causal claim about why a model wins is established by these comparisons alone.
+**bow_nb**
 
-## Reproducibility and app handoff
+```text
+[867, 171, 293]
+[159, 235, 314]
+[367, 392, 6457]
+```
 
-Input SHA-256 values match the M2 run:
+**tfidf_nb**
 
-- train: `593f210cf56e2673fc3707473acccb1ca2673e5ca5d15f6817b68eb33f3f222f`
-- test: `2c01b2781917986afaa34b6cf5502a0cdca642ea2fe7504ac1da985ca6c662f3`
+```text
+[159, 0, 1172]
+[17, 0, 691]
+[12, 0, 7204]
+```
 
-Measured environment: python 3.11.14, scikit-learn 1.9.1, numpy 2.4.6, scipy 1.17.1, pandas 3.1.0, joblib 1.6.0, matplotlib 3.11.2, threadpoolctl 3.8.0.
+**bow_lr**
 
-`outputs/m3/comparison/` holds the exact selection IDs/candidate scores, epoch
-history, metrics and predictions, six confusion matrices, timing comparison,
-pinned run package versions, and five fitted pipeline artifacts. These remain
-ignored/local and include raw review text. The final classifiers use their own
-full-training vocabulary and expose predict/predict_proba for local handoff.
-No app source or existing M2 app artifact is changed. Text-cleaning parity and
-multi-model UI integration still require coordination with the App Engineer.
+```text
+[794, 108, 429]
+[161, 145, 402]
+[227, 199, 6790]
+```
 
-The team must still integrate the app, capture two screenshots, assemble the
-4–6 page M3 PDF, and confirm the revised timeline and individual progress logs.
-AI assistance was used for implementation and these technical notes; final
-analysis and submission writing must be checked and owned by the team.
+**tfidf_lr**
+
+```text
+[935, 274, 122]
+[176, 386, 146]
+[472, 945, 5799]
+```
+
+**tfidf_mlp**
+
+```text
+[812, 97, 422]
+[160, 136, 412]
+[225, 164, 6827]
+```
+
+## Neural-network loss analysis
+
+Selected epoch: **13**, validation Macro-F1 0.6057.
+Training loss falls from 0.5870 to 0.1113;
+validation loss reaches its minimum at epoch 6 (0.4041)
+and rises to 0.5117 at epoch 15. This is consistent with
+overfitting. At the selected epoch, train/validation loss is
+0.1343/0.4809. Selection intentionally uses macro-F1,
+not minimum cross-entropy. The diagnostic curves are from inner training,
+not from the full-training refit. Loss history is in the provenance JSON and
+`mlp_loss.png` in the release attachments, so the figure is tied to the same run.
+
+The MLP can represent nonlinear feature combinations, but the measured result does
+not establish superiority over all classical models. Limitations include overfit,
+more parameters, lower interpretability and no word-order modeling. Class weighting
+in LR improves minority recall at a cost to accuracy; discuss both macro and
+per-class metrics. Single split/seed results are not statistical superiority claims.
+
+## Exact report/demo handoff
+
+Use only the model hashes in `models/release_manifest.json` under **v0.2.0-rc2**.
+`docs/M3_RELEASE.json` records all five model hashes, input hashes, source hashes,
+settings, full loss history, metrics, timing and runtime versions. Raw reviews and
+split IDs are excluded. Model binaries, report-only loss PNG and provenance are
+published as a new prerelease, without replacing rc1.
+
+Run/rebuild instructions: [M3 training](M3_TRAINING.md). Downloads use the immutable
+release assets plus hash verification; a rerun may have different serialization
+bytes/timings, so cut a new release rather than replacing approved artifacts.
+
+```bash
+MODELS_VERSION_TAG=v0.2.0-rc2 python -m streamlit run app.py
+```
+
+Release mode lists ONLY the five verified report models, ignoring unrelated old
+local joblib files. A legacy release tag is rejected with instructions to update
+the setting. No-tag local mode still supports development model discovery.
+Both local and release inference now apply the SAME HTML/entity/whitespace/lowercase
+cleaner as data preparation, then reject inputs empty after cleaning. Models expect
+cleaned Text; Summary and rating are not features.
+
+M3 model integration exists. The team must still verify its actual hosted instance,
+include two real app screenshots, assemble the 4–6 page PDF, and confirm individual
+progress logs/submission. AI assisted implementation and these draft notes; final
+interpretation and report writing should be checked and owned by the team.

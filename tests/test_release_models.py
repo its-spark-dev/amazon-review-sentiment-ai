@@ -14,7 +14,7 @@ import streamlit as st
 from streamlit.testing.v1 import AppTest
 
 import inference
-from inference import RELEASE_MANIFEST, RELEASE_URL, ensure_models_release
+from inference import RELEASE_MANIFEST, RELEASE_URL, REPORT_MODEL_RELEASE, ensure_models_release
 
 ROOT = Path(__file__).resolve().parents[1]
 TAG = "v0.1.0-rc1"
@@ -187,20 +187,45 @@ class AppReleaseWiringTests(unittest.TestCase):
             return AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
 
     def test_failure_shows_error_and_stops(self):
-        env = {"MODELS_VERSION_TAG": TAG, "SENTIMENT_MODEL_DIR": self.model_dir}
+        env = {"MODELS_VERSION_TAG": REPORT_MODEL_RELEASE, "SENTIMENT_MODEL_DIR": self.model_dir}
         with mock.patch("inference.ensure_models_release", side_effect=OSError("boom")) as ensure:
             at = self.run_app(env)
-        ensure.assert_called_once_with(TAG, Path(self.model_dir))
+        ensure.assert_called_once_with(REPORT_MODEL_RELEASE, Path(self.model_dir))
         self.assertEqual([e.value for e in at.error], ["Failed to prepare staging models"])
         self.assertEqual(len(at.title), 0)  # st.stop() before the rest of the page
 
     def test_success_renders_page(self):
-        env = {"MODELS_VERSION_TAG": TAG, "SENTIMENT_MODEL_DIR": self.model_dir}
+        env = {"MODELS_VERSION_TAG": REPORT_MODEL_RELEASE, "SENTIMENT_MODEL_DIR": self.model_dir}
         with mock.patch("inference.ensure_models_release") as ensure:
             at = self.run_app(env)
         ensure.assert_called_once()
         self.assertEqual(len(at.error), 0)
         self.assertEqual(at.title[0].value, "Amazon Review Sentiment AI")
+
+    def test_legacy_tag_is_rejected_for_report_demo(self):
+        with mock.patch("inference.ensure_models_release") as ensure:
+            at = self.run_app({"MODELS_VERSION_TAG": TAG})
+        ensure.assert_not_called()
+        self.assertIn(REPORT_MODEL_RELEASE, at.error[0].value)
+
+    def test_release_lists_only_manifest_models(self):
+        import joblib
+
+        from ml_baseline import create_nb_pipeline
+        model = create_nb_pipeline().fit(
+            ['awful stale', 'ordinary plain', 'excellent fresh'],
+            ['Negative', 'Neutral', 'Positive'])
+        root = Path(self.model_dir)
+        paths = [root / 'bow_nb.joblib', root / 'tfidf_lr.joblib']
+        for path in paths:
+            joblib.dump(model, path)
+        (root / 'sentiment_pipeline.joblib').write_bytes(b'old corrupt local artifact')
+        with mock.patch('inference.ensure_models_release', return_value=paths):
+            at = self.run_app({'MODELS_VERSION_TAG': REPORT_MODEL_RELEASE,
+                               'SENTIMENT_MODEL_DIR': str(root)})
+        self.assertFalse(at.exception)
+        self.assertFalse(at.error)
+        self.assertEqual(at.selectbox(key='model_choice').options, ['bow_nb', 'tfidf_lr'])
 
     def test_not_called_without_tag(self):
         env = {"SENTIMENT_MODEL_DIR": self.model_dir}
