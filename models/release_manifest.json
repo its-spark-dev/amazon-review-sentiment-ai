@@ -1,0 +1,9 @@
+{
+  "v0.1.0-rc1": {
+    "bow_lr.joblib": "2ae8133ca37d350c4c885a4adb575e4660d9fd1c3b494619d032124e08ca413c",
+    "bow_nb.joblib": "428f71464c4e23b68a164bf4fa07d7f2d66726a8e8adbe49b8a7e26a14d638e8",
+    "tfidf_lr.joblib": "f8427727d6b07f488987cf460874ba64cd5397afc7c5a4d875b548140bbaa0e0",
+    "tfidf_mlp.joblib": "ab5e245c03eb191c32de344c12515096512b0992ca1d0175c03abdc78567fbe3",
+    "tfidf_nb.joblib": "97cd00456b83b60ce58fa6ea7f1c2fdd440683cb9131a873ce87aa1074f709d3"
+  }
+}

@@ -15,6 +15,7 @@
 # Generated model artifacts: keep only the directory placeholder.
 /models/*
 !/models/.gitkeep
+!/models/release_manifest.json
 *.pkl
 *.pickle
 *.joblib

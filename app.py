@@ -1,11 +1,12 @@
 """Streamlit app: enter an Amazon food review and get a three-class sentiment."""
 
+import os
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
-from inference import MAX_REVIEW_CHARS, load_model, model_paths, predict_review
+from inference import MAX_REVIEW_CHARS, MODELS_DIR, ensure_models_release, load_model, model_paths, predict_review
 from ml_baseline import CLASS_LABELS
 
 st.set_page_config(page_title="Amazon Review Sentiment AI")
@@ -57,6 +58,17 @@ def load_selected(path):
 
 
 def main() -> None:
+    release_tag = os.environ.get("MODELS_VERSION_TAG")  # GitHub release tag to download the models from
+
+    if release_tag:
+        # Same directory model_paths() scans, so downloaded artifacts are listed below.
+        model_dir = Path(os.environ.get("SENTIMENT_MODEL_DIR", MODELS_DIR))
+        try:
+            ensure_models_release(release_tag, model_dir)
+        except (OSError, ValueError):
+            st.error("Failed to prepare staging models")
+            st.stop()
+
     paths = model_paths()  # re-scanned every rerun: additions/removals show up
     options = [str(p) for p in paths]
     if st.session_state.get("model_choice") not in options:
