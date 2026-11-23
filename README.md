@@ -79,8 +79,9 @@ with a no-model notice and analysis disabled. Predictions require a compatible
 locally saved pipeline. The app lists every `*.joblib` file in `models/` (or the
 directory set by `SENTIMENT_MODEL_DIR`); when more than one is found, a model
 selector appears next to the submit button, with `sentiment_pipeline.joblib`
-preselected if present. Setting `SENTIMENT_MODEL_PATH` restricts the app to that
-single file. Model additions, replacements, and removals are detected on the next
+preselected if present. The choice is applied when the review is submitted; if
+the selected file cannot be loaded, an error is shown and you can pick another
+model. Setting `SENTIMENT_MODEL_PATH` restricts the app to that single file. Model additions, replacements, and removals are detected on the next
 app rerun; unchanged files reuse the cached resource.
 
 API and usage details: [ML baseline](docs/ML_BASELINE.md) ·

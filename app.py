@@ -93,8 +93,14 @@ def main() -> None:
             left.selectbox("Model", options, key="model_choice", format_func=lambda p: Path(p).stem)
         else:
             right = st.container()
+        # The model choice lives in this form, so submitting is the only way to apply a new
+        # one. Keep the button enabled while there are other models to switch to, or a
+        # broken selected artifact would trap the user on it.
         submitted = right.form_submit_button(
-            "Analyze sentiment", type="primary", disabled=model is None, use_container_width=True
+            "Analyze sentiment",
+            type="primary",
+            disabled=model is None and len(paths) <= 1,
+            use_container_width=True,
         )
 
     if not submitted or model is None:
