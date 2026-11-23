@@ -1,4 +1,4 @@
-"""Shared pytest fixtures; the unittest suites in tests/ do not depend on these."""
+"""Shared pytest fixtures. Only the autouse env guard below also applies to the unittest suites."""
 
 import os
 from pathlib import Path
@@ -11,6 +11,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))  # for `import syntheti
 import synthetic  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture(autouse=True)
+def _no_model_release_download(monkeypatch):
+    """Never let a developer's MODELS_VERSION_TAG make app tests download real releases."""
+    monkeypatch.delenv("MODELS_VERSION_TAG", raising=False)
 
 
 @pytest.fixture

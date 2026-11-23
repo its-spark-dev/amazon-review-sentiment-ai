@@ -47,9 +47,10 @@ jobs:
           if [ -n "$bad" ]; then
             echo "::error::Files that must not be committed:"; echo "$bad"; exit 1
           fi
-          extra=$(git ls-files data models | grep -vE '^(data/README\.md|models/\.gitkeep)$' || true)
+          # models/release_manifest.json holds only release tags and SHA-256 hashes, no artifacts.
+          extra=$(git ls-files data models | grep -vE '^(data/README\.md|models/\.gitkeep|models/release_manifest\.json)$' || true)
           if [ -n "$extra" ]; then
-            echo "::error::Only data/README.md and models/.gitkeep may be tracked:"; echo "$extra"; exit 1
+            echo "::error::Only data/README.md, models/.gitkeep and models/release_manifest.json may be tracked:"; echo "$extra"; exit 1
           fi
       - name: Large files (>5 MB)
         run: |
