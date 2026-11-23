@@ -10,7 +10,7 @@ import joblib
 import streamlit as st
 from streamlit.testing.v1 import AppTest
 
-from inference import load_model, predict_review, validate_review
+from inference import load_model, model_paths, predict_review, validate_review
 from ml_baseline import CLASS_LABELS, create_nb_pipeline
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,6 +37,29 @@ class InferenceTests(unittest.TestCase):
 
     def test_missing_model_returns_none(self):
         self.assertIsNone(load_model(Path(tempfile.gettempdir()) / "no_such_model.joblib"))
+
+    def test_model_paths_lists_joblib_files_default_first(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in ("b.joblib", "sentiment_pipeline.joblib", "a.joblib", ".gitkeep", "notes.txt"):
+                (root / name).touch()
+            (root / "dir.joblib").mkdir()
+            env = {"SENTIMENT_MODEL_DIR": tmp}
+            with mock.patch.dict(os.environ, env):
+                os.environ.pop("SENTIMENT_MODEL_PATH", None)
+                names = [p.name for p in model_paths()]
+            self.assertEqual(names, ["sentiment_pipeline.joblib", "a.joblib", "b.joblib"])
+
+    def test_model_path_override_limits_to_one_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "a.joblib").touch()
+            chosen = Path(tmp) / "b.joblib"
+            chosen.touch()
+            env = {"SENTIMENT_MODEL_DIR": tmp, "SENTIMENT_MODEL_PATH": str(chosen)}
+            with mock.patch.dict(os.environ, env):
+                self.assertEqual(model_paths(), [chosen])
+                chosen.unlink()
+                self.assertEqual(model_paths(), [])
 
 
 class AppTests(unittest.TestCase):
@@ -132,6 +155,63 @@ class AppTests(unittest.TestCase):
             self.assertFalse(at.exception)
             self.assertTrue(at.button[-1].disabled)
             self.assertIn("No trained model found", at.info[0].value)
+
+
+class ModelSelectionTests(unittest.TestCase):
+    def setUp(self):
+        st.cache_resource.clear()
+        self.addCleanup(st.cache_resource.clear)
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        patcher = mock.patch.dict(os.environ, {"SENTIMENT_MODEL_DIR": self.tmp.name})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        os.environ.pop("SENTIMENT_MODEL_PATH", None)  # restored by patch.dict
+
+    def run_app(self):
+        return AppTest.from_file(str(ROOT / "app.py"), default_timeout=30).run()
+
+    def predict(self, at, text):
+        at.text_area(key="review").input(text)
+        at.button[-1].click().run()
+        self.assertFalse(at.exception)
+        return [s.value for s in at.subheader]
+
+    def test_empty_directory_shows_notice(self):
+        at = self.run_app()
+        self.assertFalse(at.exception)
+        self.assertIn("No trained model found", at.info[0].value)
+        self.assertTrue(at.button[-1].disabled)
+        self.assertEqual(len(at.selectbox), 0)
+
+    def test_single_model_has_no_selector(self):
+        joblib.dump(fitted_model(), self.root / "only.joblib")
+        at = self.run_app()
+        self.assertEqual(len(at.selectbox), 0)
+        self.assertIn("Negative", self.predict(at, "awful stale bad"))
+
+    def test_selector_switches_models(self):
+        flipped = [{"Positive": "Negative", "Negative": "Positive"}.get(c, c) for c in LABELS]
+        joblib.dump(fitted_model(), self.root / "a_normal.joblib")
+        joblib.dump(create_nb_pipeline("tfidf").fit(TEXTS, flipped), self.root / "b_flipped.joblib")
+        at = self.run_app()
+        self.assertEqual(at.selectbox(key="model_choice").options, ["a_normal", "b_flipped"])
+        self.assertIn("Positive", self.predict(at, "great tasty love"))
+        at.selectbox(key="model_choice").select(str(self.root / "b_flipped.joblib"))
+        self.assertIn("Negative", self.predict(at, "great tasty love"))
+
+    def test_removed_selection_falls_back_to_default(self):
+        for name in ("a.joblib", "b.joblib", "c.joblib"):
+            joblib.dump(fitted_model(), self.root / name)
+        at = self.run_app()
+        at.selectbox(key="model_choice").select(str(self.root / "c.joblib"))
+        self.predict(at, "great tasty love")
+        (self.root / "c.joblib").unlink()
+        at.run()
+        self.assertFalse(at.exception)
+        self.assertEqual(at.selectbox(key="model_choice").value, str(self.root / "a.joblib"))
+        self.assertFalse(at.button[-1].disabled)
 
 
 if __name__ == "__main__":
