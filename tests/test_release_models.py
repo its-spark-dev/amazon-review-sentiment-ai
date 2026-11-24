@@ -226,6 +226,8 @@ class AppReleaseWiringTests(unittest.TestCase):
         self.assertFalse(at.exception)
         self.assertFalse(at.error)
         self.assertEqual(at.selectbox(key='model_choice').options, ['bow_nb', 'tfidf_lr'])
+        self.assertEqual(at.selectbox(key='model_choice').value, str(root / 'tfidf_lr.joblib'))
+        self.assertTrue(any('Recommended rc2 model: tfidf_lr' in c.value for c in at.main.caption))
 
     def test_not_called_without_tag(self):
         env = {"SENTIMENT_MODEL_DIR": self.model_dir}

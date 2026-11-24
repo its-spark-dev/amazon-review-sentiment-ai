@@ -22,6 +22,8 @@ import urllib.parse
 import urllib.request
 
 import joblib
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
 
 from ml_baseline import CLASS_LABELS
@@ -84,12 +86,22 @@ def predict_review(model, text: str) -> dict:
 
     Returns ``{"label": str, "probabilities": {label: float} | None}``.
     Probabilities follow ``CLASS_LABELS`` order and are None if the model
-    does not expose ``predict_proba``.
+    does not expose ``predict_proba``. For BoW/TF-IDF pipelines, raises
+    ValueError before classification if no vocabulary features are recognized.
+    This checks the fitted vocabulary, not the input's language or reliability.
     """
     text = validate_review(text)
     text = clean_text(text)
     if not text:
         raise ValueError("Enter a review containing text after HTML cleanup.")
+    # TfidfVectorizer inherits CountVectorizer. Transform only: never fit or
+    # change the release pipeline when checking a single review.
+    if isinstance(model, Pipeline) and isinstance(model.steps[0][1], CountVectorizer):
+        if model.steps[0][1].transform([text]).nnz == 0:
+            raise ValueError(
+                "No words in this review are recognized by the selected model. "
+                "Try an English food review with more detail."
+            )
     label = str(model.predict([text])[0])
     probabilities = None
     if hasattr(model, "predict_proba"):

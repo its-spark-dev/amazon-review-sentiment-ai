@@ -4,6 +4,7 @@ import pytest
 
 from inference import load_model, predict_review
 from ml_baseline import CLASS_LABELS
+from scripts.clean_reviews import clean_text
 import synthetic
 
 pytestmark = pytest.mark.integration
@@ -40,8 +41,20 @@ def test_m3_artifact_inference_contract(m3_output, name):
     assert result["label"] in CLASS_LABELS
     assert list(result["probabilities"]) == list(CLASS_LABELS)
     assert sum(result["probabilities"].values()) == pytest.approx(1.0)
-    # The reported label is the model's own argmax, so the app's confidence is consistent.
+    # The reported label is the model's own argmax, without changing its probabilities.
     assert result["probabilities"][result["label"]] == max(result["probabilities"].values())
+
+
+@pytest.mark.parametrize("name", M3_MODELS)
+def test_m3_artifact_guard_preserves_supported_predictions(m3_output, name):
+    model = load_model(m3_output / f"{name}.joblib")
+    with pytest.raises(ValueError, match="No words.*recognized"):
+        predict_review(model, "quuxzzblorb 🍪 이 음식은 맛있어요")
+    raw = "<b>FANTASTIC</b> fresh &amp; crunchy 🍪 quuxzzblorb"
+    expected = dict(zip(model.classes_, model.predict_proba([clean_text(raw)])[0]))
+    result = predict_review(model, raw)
+    assert result["label"] == model.predict([clean_text(raw)])[0]
+    assert result["probabilities"] == expected
 
 
 @pytest.mark.parametrize("name", M3_MODELS)
@@ -80,6 +93,7 @@ def test_app_discovers_every_m3_artifact(m3_output, app_on_dir):
     assert not at.exception and not at.error
     selector = at.selectbox(key="model_choice")
     assert sorted(selector.options) == sorted(M3_MODELS)
+    assert selector.value == str(m3_output / "tfidf_lr.joblib")
     assert f"{len(M3_MODELS)} models available" in [c.value for c in at.sidebar.caption]
 
 

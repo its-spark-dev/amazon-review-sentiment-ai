@@ -2,8 +2,15 @@
 
 Reviewed **November 23, 2026 (EST)** against main `2445b30`. This is a public
 presentation and evidence audit, not a new experiment or a claim of defect-free
-software. This PR changes documentation and a verified demo screenshot only.
-It does not change models, dependencies, GitHub settings or deployment settings.
+software. The original [PR #22](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/22)
+changed documentation and a verified demo screenshot only and is now merged.
+
+**Serving follow-up, November 24:** this branch implements the zero-feature guard,
+TF-IDF LR initial selection and explicit uncalibrated-probability wording from
+items 2–3 below. Synthetic regression tests cover rejection, recovery, unchanged
+supported predictions and preserved user choices. The original observations below
+remain dated audit evidence; these code changes do not claim a hosted deployment
+check or alter rc2 artifacts, preprocessing, selection, metrics or model weights.
 
 ## Conclusion
 
@@ -83,9 +90,10 @@ settle all redistribution questions. Do not infer data/model licensing from a
 third-party repository. Acceptance: maintainers choose and record accurate reuse
 terms and any dataset/artifact restrictions; only then add a corresponding badge.
 
-**2. Add a zero-feature input guard in a separate serving PR.**
-[inference.py](../inference.py) checks blank/long/markup-only input, but does not
-check whether the chosen vectorizer recognizes any feature. Probes `🍪🍪🍪` and
+**2. Zero-feature input guard (implemented in the serving follow-up).**
+At the original audit, [inference.py](../inference.py) checked blank/long/markup-only
+input, but did not check whether the chosen vectorizer recognized any feature.
+Probes `🍪🍪🍪` and
 `이 음식은 맛있고 신선해요` both yielded zero nonzero features for the audited
 BoW LR, TF-IDF LR and MLP artifacts. Nonetheless each returned Positive, with
 probabilities approximately 74.01%, 39.09% and 77.81%, respectively. These values
@@ -95,13 +103,14 @@ Acceptance: zero-feature input produces a clear insufficient-vocabulary message;
 normal inputs retain the same probabilities; unit/AppTest coverage exercises
 both paths with synthetic artifacts. Do not claim a general language detector.
 
-**3. Align serving explanation and initial selection.** The recommendation is
-TF-IDF LR, while [app.py](../app.py) initially uses the first manifest entry,
-BoW LR. The README now explains the difference. A future UI change could make
-the recommended model explicit/default while preserving user choice. The UI's
-“Confidence” label also needs a plain explanation that probabilities are not
-validated reliability estimates. Acceptance: synthetic switching/cache tests
-still pass; no score or model artifact changes; labels explain actual behavior.
+**3. Align serving explanation and initial selection (implemented in the follow-up).**
+At the audit, TF-IDF LR was recommended while [app.py](../app.py) initially used
+the first manifest entry, BoW LR. The follow-up initially selects tfidf_lr when
+available, preserves valid user choices and retains local single-file overrides.
+It replaces “Confidence” with “Predicted-class probability”, displays one decimal
+place and explains that probabilities are uncalibrated estimates. Acceptance:
+synthetic switching/cache tests still pass; no score or model artifact changes;
+labels explain actual behavior. Calibration itself remains separate future work.
 
 **4. Review the Codespaces startup command before advertising that path.**
 [devcontainer.json](../.devcontainer/devcontainer.json) starts Streamlit with
@@ -189,7 +198,7 @@ social-preview, description/homepage and access settings were not modified here.
 
 ## Review and publication checks
 
-Before sharing the portfolio link, review this documentation PR and PR #21
+Before sharing the portfolio link, review the serving follow-up and PR #21
 separately, keep model/metric claims tied to rc2, and confirm the demo is reachable
 at the time of sharing. Keep M3 PDF updating and the M4 report/presentation as
 course tasks; a polished README cannot stand in for their submission. For any
@@ -209,5 +218,6 @@ matter more than decorative badges.
 
 Implementation evidence comes from the reviewed source and canonical local
 artifacts; the external guidance supplies review criteria, not evidence that
-this particular model is reliable. The action list is prepared work, not a
-claim that those improvements have already been implemented.
+this particular model is reliable. Except for the explicitly marked serving
+follow-up, the remaining action items are proposals rather than implemented
+improvements.

@@ -26,7 +26,8 @@ This is an educational ML demonstration, with the evaluation limits documented b
 ![Live main app showing a TF-IDF LR prediction and three-class probabilities](docs/assets/demo.jpg)
 
 *Actual main deployment, captured November 23, 2026. The model selector serves
-five rc2 pipelines. Example probabilities describe this input, not test accuracy.*
+five rc2 pipelines. The capture predates the input/probability UI update;
+example probabilities describe this input, not test accuracy.*
 
 ## What is implemented
 
@@ -59,8 +60,10 @@ exact-text overlap. Inner fit/validation sizes are **29,622 / 7,401**.
 **Recommendation:** TF-IDF LR (`C=0.5`, balanced weights) had the highest
 validation Macro-F1, **0.6170**. On test, its Neutral recall is **54.52%**, versus
 **19.21%** for MLP, with lower overall accuracy and Neutral precision. Test rankings
-were not used to change that recommendation. Select `tfidf_lr` in the app to try it;
-the current release menu initially selects `bow_lr`.
+were not used to change that recommendation. The app initially selects `tfidf_lr`
+when available and preserves your choice across reruns. In local mode, a single
+`SENTIMENT_MODEL_PATH` override still takes precedence; without `tfidf_lr`, the
+existing first available model is used.
 
 All five trained models use 10,000 word-unigram features. The MLP has one hidden
 layer of 32 ReLU units and uses validation-selected epoch 13. It does not model
@@ -155,10 +158,12 @@ pushes. Development dependencies include the runtime requirements.
   a single split/seed, with no confidence intervals or statistical superiority claims.
 - Splits group exact cleaned text, not users, products, near-duplicates or time.
   Results do not establish generalization to unseen users/products or current reviews.
-- English food-review text is the intended domain. Other languages, emoji-only
-  or unseen-vocabulary inputs can still produce a label even with zero known features.
-- The app's “Confidence” is an uncalibrated model probability, not a validated
-  reliability score. The demo is not a production monitoring or moderation system.
+- English food-review text is the intended domain. BoW/TF-IDF pipelines withhold
+  predictions when no vocabulary features are recognized after cleanup. This is
+  a vocabulary check; partially recognized and out-of-domain inputs can still be wrong.
+- “Predicted-class probability” displays the model's uncalibrated probability
+  with one decimal place. High values can still accompany incorrect predictions.
+  The demo is not a production monitoring or moderation system.
 
 The [model card](docs/MODEL_CARD.md) describes the data, intended use and limits.
 The [portfolio review](docs/PORTFOLIO_READINESS.md) records evidence and follow-up
