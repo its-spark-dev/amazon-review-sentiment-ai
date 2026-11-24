@@ -5,7 +5,8 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat)
 
 Three-class sentiment analysis of Amazon Fine Food Reviews, with reproducible
-classical ML baselines, evaluation tools, and a local Streamlit inference UI.
+classical ML baselines, evaluation tools, and a Streamlit inference UI with a
+verified hosted staging demo.
 
 ## Project Overview
 
@@ -25,7 +26,7 @@ As of **November 23, 2026**:
 | --- | --- | --- |
 | M1 — Project Charter & Scope | Nov 10, 2026 | Submitted |
 | M2 — Initial Solution | Nov 15, 2026 | Technical implementation complete; submission not confirmed |
-| M3 — Refined Solution & App Prototype | Nov 22, 2026 | ML and multi-model local/staging UI implemented; final PDF/submission unconfirmed |
+| M3 — Refined Solution & App Prototype | Nov 22, 2026 | ML comparison and hosted staging prototype verified; final PDF/submission unconfirmed |
 | M4 — Final Report | Nov 29, 2026 | Planned |
 
 Milestone deadlines are **11:59 PM EST**. M1 was extended from November 8 to
@@ -102,7 +103,8 @@ to `v0.1.0-rc1`; the app now rejects that historical demo version.
 The [M3 report](docs/M3_RESULTS.md) and [provenance](docs/M3_RELEASE.json) identify
 the exact hashes, metrics, loss history and timings. Training and test files stay
 local. A fresh clone can run the release demo without the dataset; training needs it.
-No hosted deployment URL or official M3 submission is confirmed here.
+The [staging demo](https://amazon-sentiment-ai-preview.streamlit.app/) was verified
+on November 23, 2026 with this release. Official M3 submission is not confirmed.
 
 ## Project Structure
 
@@ -136,8 +138,8 @@ git clone https://github.com/its-spark-dev/amazon-review-sentiment-ai.git
 cd amazon-review-sentiment-ai
 python3.11 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m unittest discover -s tests -v
+python -m pip install -r requirements-dev.txt
+python -m pytest -m "not integration and not e2e"
 python -m streamlit run app.py
 ```
 
@@ -145,6 +147,10 @@ On Windows, create the environment with `py -3.11 -m venv .venv` and activate it
 with `.venv\Scripts\Activate.ps1` in PowerShell, then run the same installation,
 test, and app commands. Open Streamlit's printed local URL, normally
 `http://localhost:8501`; stop the server with `Ctrl+C`.
+
+`requirements-dev.txt` includes the runtime dependencies and test tooling. For
+running the app without tests, install only `requirements.txt`. Use pytest for
+the suite: `unittest discover` does not execute the pytest-style regression tests.
 
 ### Tests and CI
 
@@ -158,7 +164,7 @@ python -m playwright install chromium
 | Command | Runs |
 | --- | --- |
 | `ruff check .` | Lint (rules in `pyproject.toml`) |
-| `python -m pytest -m "not integration and not e2e"` | Unit tests (also runnable with `unittest`) |
+| `python -m pytest -m "not integration and not e2e"` | Unit tests, including release and preprocessing regressions |
 | `python -m pytest -m integration` | Data pipeline → saved model → inference → app, via `AppTest` |
 | `python -m pytest -m e2e` | Chromium against a live `streamlit run` server |
 | `python -m pytest --cov` | Everything, with coverage |
@@ -198,19 +204,28 @@ files from trusted team sources: loading them can execute code.
 ## Roadmap
 
 - **M3 — In progress:** Logistic Regression, MLP, training-internal validation,
-  loss curves and model comparisons are implemented. Multi-model app integration is implemented. Screenshots,
-  final PDF and submission confirmation remain team tasks.
+  loss curves and model comparisons are implemented. The hosted multi-model
+  staging app is verified and two screenshots have been captured locally.
+  Adding them to the final PDF and confirming submission remain team tasks.
 - **M4 — Planned:** Final report and presentation slides, Streamlit Community
-  Cloud deployment, and final verification. The team timeline schedules an
+  Cloud production deployment, and final verification. The team timeline schedules an
   **8-minute presentation + 2-minute Q&A on December 3, 2026**.
 
-Release-backed staging support is implemented; a hosted deployment URL has not
-been verified in this repository. The intended hosting target is
-[Streamlit Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app),
-using `main`, `app.py`, Python 3.11, and the root `requirements.txt`. A deployed
-instance will also need access to a compatible model. Configure future secrets
-in the platform's secrets settings; never commit `.env` or
-`.streamlit/secrets.toml`.
+The [staging app](https://amazon-sentiment-ai-preview.streamlit.app/) runs on
+[Streamlit Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app)
+from `staging`, using `app.py`, the root `requirements.txt`, and
+`MODELS_VERSION_TAG="v0.2.0-rc2"`. After a full reboot on November 23, 2026,
+all five models passed positive/negative prediction checks; HTML preprocessing
+parity and empty-input guards also passed (14 hosted checks in total).
+These synthetic checks validate app behavior, not held-out model performance.
+Two report screenshots were captured locally and are not committed.
+
+The current cloud runtime is Python 3.14; training and the documented local/CI
+environment use Python 3.11. Hosted predictions matched the rc2 model outputs
+for the checked examples. A separate production deployment from `main` has not
+been verified. Branch merges do not copy Streamlit settings: configure the same
+model tag and reboot any production instance before verifying it. Store settings
+in the platform's secrets editor; never commit `.env` or `.streamlit/secrets.toml`.
 
 ## Team and Acknowledgments
 

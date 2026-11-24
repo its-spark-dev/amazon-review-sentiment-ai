@@ -41,8 +41,8 @@ and lists so downstream code can serialize it without conversion.
 After activating the Python 3.11 environment described in the root README:
 
 ```bash
-python -m pip install -r requirements.txt
-python -m unittest discover -s tests -v
+python -m pip install -r requirements-dev.txt
+python -m pytest -m "not integration and not e2e"
 ```
 
 Tests use only in-memory text and labels; no Kaggle data, credentials, downloads,
@@ -92,9 +92,11 @@ Training texts must contain tokens recognized by the vectorizer.
 Ratings define the target labels and are not included as input features.
 
 Initial real-data fitting and evaluation are recorded in [M2 results](M2_BASELINE_RESULTS.md). Logistic
-Regression, the planned feedforward neural network, tuning, and live deployment
-remain future work. The prepared-split runner can now export a local BoW pipeline,
-and its predictions have been checked through the existing Streamlit UI.
+Regression and the feedforward neural network are implemented in the separate
+[M3 workflow](M3_TRAINING.md); its release-backed hosted staging app has been
+[verified](M3_RESULTS.md#hosted-staging-status). The prepared-split M2 runner can
+export a local BoW pipeline, and its predictions have been checked through the
+existing Streamlit UI.
 M2 assigns initial baseline training to Sang Park;
 the submitted timeline targets comparison of all models and app integration in
 M3, followed by final model results and deployment in M4.

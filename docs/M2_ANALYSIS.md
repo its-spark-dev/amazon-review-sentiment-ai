@@ -12,8 +12,8 @@ Streamlit, tune parameters, or serialize fitted models.
 From the repository root, with the Python 3.11 environment active:
 
 ```bash
-python -m pip install -r requirements.txt
-python -m unittest discover -s tests -v
+python -m pip install -r requirements-dev.txt
+python -m pytest -m "not integration and not e2e"
 python -m m2_analysis --synthetic-demo
 ```
 
