@@ -36,6 +36,7 @@ def run(train_path, test_path, output, *, epochs=15, max_features=10000, seed=48
     metadata = {'data_description': 'M3 fixed outer split; validation-selected settings',
                 'input_sha256': hashes, 'train_size': len(training), 'test_size': len(test),
                 'selection': selection,
+                'feature_tie_break': 'descending training token count, then lexical token order',
                 'timing_protocol': 'single-thread feature fitting + classifier fitting; excludes selection/test/export',
                 'environment': {'python': platform.python_version(), **{n: version(n) for n in
                     ['scikit-learn', 'numpy', 'scipy', 'pandas', 'joblib', 'matplotlib', 'threadpoolctl']}}}
@@ -60,6 +61,8 @@ def run(train_path, test_path, output, *, epochs=15, max_features=10000, seed=48
     (output / 'comparison.md').write_text('\n'.join(rows) + '\n')
     (output / 'requirements-run.txt').write_text('\n'.join(
         f'{n}=={v}' for n, v in metadata['environment'].items() if n != 'python') + '\n')
+    model_hashes = {p.name: _sha256(p) for p in sorted(output.glob('*.joblib'))}
+    (output / 'model_hashes.json').write_text(json.dumps(model_hashes, indent=2) + '\n')
     print('\n'.join(rows), flush=True)
     return selection, runs
 

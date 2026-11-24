@@ -28,7 +28,7 @@ def streamlit_server(log_path: Path, *, model_path: Path | None = None, model_di
     """Serve app.py with either one model file (SENTIMENT_MODEL_PATH) or a models directory."""
     port = _free_port()
     # Never inherit the developer's model settings: each server sees only what the test configures.
-    env = {k: v for k, v in os.environ.items() if k not in ("SENTIMENT_MODEL_PATH", "SENTIMENT_MODEL_DIR")}
+    env = {k: v for k, v in os.environ.items() if k not in ("SENTIMENT_MODEL_PATH", "SENTIMENT_MODEL_DIR", "MODELS_VERSION_TAG")}
     env["MPLBACKEND"] = "Agg"
     if model_path is not None:
         env["SENTIMENT_MODEL_PATH"] = str(model_path)

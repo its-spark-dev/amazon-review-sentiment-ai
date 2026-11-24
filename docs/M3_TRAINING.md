@@ -2,10 +2,12 @@
 
 This workflow extends M2 with Logistic Regression and a feedforward MLP. It does
 not modify the app or the existing shared test CSV. Run from the repository root
-with Python 3.11 and the existing requirements installed:
+with the Python 3.11 environment active. Install development dependencies before
+running the pytest suite (they include the runtime dependencies):
 
 ```bash
-python -m unittest discover -s tests -v
+python -m pip install -r requirements-dev.txt
+python -m pytest -m "not integration and not e2e"
 python scripts/run_m3_comparison.py
 ```
 
@@ -13,6 +15,8 @@ Local prerequisites: `data/train_reviews.csv` and `data/test_reviews.csv` genera
 by the unchanged preparation scripts. Both require `Id`, `Text`, `Sentiment`;
 optional Score is checked for consistency. The runner rejects ID/Text overlap.
 No dataset is downloaded, resampled, cleaned, or repartitioned by this runner.
+Tests use synthetic data and temporary artifacts, so they do not need these CSVs.
+See the [README](../README.md#tests-and-ci) for integration and browser test commands.
 
 ## Selection protocol
 
@@ -25,7 +29,8 @@ No dataset is downloaded, resampled, cleaned, or repartitioned by this runner.
 3. Use the same maximum 10,000 word-unigram features in M3 comparisons, with
    lowercase/default tokenization and no stop-word list. TF-IDF retains its
    smoothed IDF/L2 defaults. This is an explicitly different feature budget from
-   the preserved M2 36,995-feature experiment. No dense corpus conversion is used.
+   the preserved M2 36,995-feature experiment. Tied counts are resolved lexically; vocabulary selection is training-only.
+   No dense corpus conversion is used.
 4. Select LR separately for BoW and TF-IDF over C={0.5,2.0} and class_weight=
    {None,balanced}. Solver is lbfgs with max_iter=5000; nonconvergence raises an
    error instead of being silently accepted. The iteration budget was raised
@@ -79,10 +84,21 @@ are refused. Override with `--output-dir`; `--epochs`, `--max-features` and
   predictions/errors, input hashes, environment and full timing/selection protocol.
 - `evaluation/*_confusion.png`: one matrix for each of the six comparisons.
 - `*.joblib`: five fitted text-vectorizer/classifier pipelines for local handoff.
-  App changes and artifact selection/installation are outside this PR. The M2
+  The app can load approved release artifacts as described below. The M2
   `models/sentiment_pipeline.joblib` file is never overwritten.
 - `requirements-run.txt`: exact package versions; Python version is in metadata.
 
 Artifacts include review text and split identities. Keep the entire output folder
-local. Only load trusted joblib files. The final M3 team PDF, model/app integration,
-UI screenshots and cloud deployment are separate work.
+local. Only load trusted joblib files. The runner does not deploy the app or
+assemble the final M3 team PDF. Hosted staging validation and locally captured
+report screenshots are recorded in the [M3 results](M3_RESULTS.md#hosted-staging-status).
+
+## Canonical report/demo version
+
+The current report/demo release is **v0.2.0-rc2**. See [M3 results](M3_RESULTS.md)
+and [machine-readable provenance](M3_RELEASE.json). Earlier November 15 results
+and rc1 are historical and must not be mixed into the current tables/figures.
+Use `--output-dir outputs/m3/release-rc2` for a fresh canonical rebuild. The runner
+exports `model_hashes.json` as well as the existing records. Do not overwrite an
+existing release: any intentional retraining needs a new version and updated
+provenance/manifest. See the README for the hash-verified release demo command.
