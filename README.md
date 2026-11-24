@@ -25,9 +25,20 @@ This is an educational ML demonstration, with the evaluation limits documented b
 
 ![Live main app showing a TF-IDF LR prediction and three-class probabilities](docs/assets/demo.jpg)
 
-*Actual main deployment, captured November 23, 2026. The model selector serves
-five rc2 pipelines. The capture predates the input/probability UI update;
-example probabilities describe this input, not test accuracy.*
+*Actual main deployment, captured November 24, 2026 after PR #23 and a full
+reboot. TF-IDF LR is the initial selection; probabilities are explicitly labeled
+as uncalibrated estimates. This example's 98.6% is not test accuracy.*
+
+<details>
+<summary>Input guard example</summary>
+
+![Main app withholding a prediction for an emoji-only input with no recognized vocabulary](docs/assets/input-guard.jpg)
+
+*The selected model recognizes no vocabulary features, so the app shows an
+explanation and withholds the label and probabilities. This is a vocabulary
+check, not language or out-of-domain detection.*
+
+</details>
 
 ## What is implemented
 
@@ -176,11 +187,22 @@ work, including the separately reviewed [error-analysis PR #21](https://github.c
 | [Main demo](https://amazon-sentiment-ai.streamlit.app/) | `main` | 3.11.18 | `v0.2.0-rc2` |
 | [Staging](https://amazon-sentiment-ai-preview.streamlit.app/) | `staging` | 3.14 | `v0.2.0-rc2` |
 
-Both deployments were rebooted and passed 14 synthetic hosted checks each on
-November 23, 2026: model switching, positive/negative predictions, preprocessing
-parity and invalid-input handling. These dated checks are not an uptime guarantee.
-Main predictions matched the canonical local models. Configure the model tag
-separately in each app's Streamlit secrets editor; branch merges do not transfer it.
+**Main verified November 24, 2026** after
+[PR #23](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/23)
+merged at `9a29272` and the app was fully rebooted. A new session selected
+`tfidf_lr`; the probability label, one-decimal display and uncalibrated-estimate
+explanation were visible. Across all five models, 10 positive/negative predictions
+matched canonical rc2 labels and displayed probabilities, 15 zero-feature probes
+were withheld, and five valid-input recoveries passed. Empty and markup-only
+input checks also passed. [Deployment verification details](docs/M3_RESULTS.md#hosted-main-status)
+
+Staging's last recorded verification remains **November 23**: 14 hosted checks
+with rc2. The November 24 serving update was verified on main only. These dated
+checks are not an uptime guarantee or new model-performance measurements.
+Configure the model tag separately in each app's Streamlit secrets editor;
+branch merges do not transfer it. After serving-module changes, reboot and
+verify behavior; automatic code refresh initially retained the old inference
+behavior during this deployment.
 Never commit `.env` or `.streamlit/secrets.toml`.
 
 ## Course and project status
