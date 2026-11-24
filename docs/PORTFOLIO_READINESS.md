@@ -174,6 +174,11 @@ check and local documentation-link check passed here; automating them and
 improving CLI branch coverage are possible follow-ups. No badge should promise
 100% coverage.
 Avoid adding a package framework or experiment platform just for appearance.
+The [documentation PR's CI run](https://github.com/its-spark-dev/amazon-review-sentiment-ai/actions/runs/45306214735)
+also reports Node.js 20 deprecation warnings for the existing checkout/setup/
+upload actions, which the runner forces onto Node.js 24. Review supported action
+versions in a separate CI-maintenance change and rerun all jobs; do not confuse
+this Actions runtime warning with the Python/model serving environment.
 
 **11. Prepare repository metadata after maintainer review.** Suggested homepage:
 `https://amazon-sentiment-ai.streamlit.app/`. Existing topics already cover the
