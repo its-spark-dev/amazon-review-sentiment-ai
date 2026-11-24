@@ -1,8 +1,9 @@
 # Portfolio readiness review
 
-Reviewed **November 23, 2026 (EST)** against main `2445b30`. This is a public
-presentation and evidence audit, not a new experiment or a claim of defect-free
-software. The original [PR #22](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/22)
+Status updated **November 24, 2026 (EST)** against main `5545a8b`. The original
+audit was November 23 against `2445b30`; dated observations below distinguish
+that history from completed follow-ups. This is an evidence audit, not a new
+experiment or a claim of defect-free software. The original [PR #22](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/22)
 changed documentation and a verified demo screenshot only and is now merged.
 
 **Serving follow-up, November 24:** [PR #23](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/23)
@@ -26,35 +27,43 @@ state-of-the-art NLP, a calibrated sentiment service, an unseen-data benchmark,
 or a completed final course submission. Those claims are not supported.
 
 M1 and M2 submission are confirmed by the user. M3's implementation is complete
-and its PDF needs updating. M4's formal final report/presentation is **not started**.
-The separately open [PR #21](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/21)
-contains an error-analysis draft; it is not merged into the reviewed main and
-does not mean the M4 milestone is complete. Keep its results out of main claims
-until separately reviewed and merged.
+and its PDF needs updating. [PR #21](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/21)
+merged at `5d83c12`: the [frozen rc2 error analysis](M4_ERROR_ANALYSIS.md), three
+figures, eight inspected paraphrases and public reproduction path are now in main.
+M4 analysis materials are ready; the final report and presentation remain pending.
+No new course-submission completion is inferred from these merges.
 
-## Changes prepared here
+[PR #25](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/25) merged
+at `5545a8b`. MIT now covers the team's code, original documentation/figures and
+project-trained models; Kaggle's CC0 data designation is separate. GitHub detects
+MIT. See [licensing scope](LICENSING.md).
+
+## Portfolio work now available
 
 | Area | Change | Evidence boundary |
 | --- | --- | --- |
 | First impression | CI/Python/model/demo badges, live app link, actual app screenshot | No static accuracy badge or invented benchmark ranking |
 | Results | rc2 comparison and validation recommendation before course history | All numbers read from M3_RELEASE.json; M2 remains a separate linked experiment |
 | Setup | Dataset-free release-demo command first; training/testing separately | Existing commands and dependency files retained |
-| Status | M1/M2 Submitted, M3 PDF update pending, M4 Not started | Submission is team-confirmed, not inferred from commits |
+| Status | M1/M2 Submitted, M3 PDF update pending, M4 analysis materials ready; final report/presentation pending | Submission is team-confirmed, not inferred from commits |
 | Model transparency | MODEL_CARD.md | Intended use, method, limitations, runtime/artifact contract |
 | Collaboration | CONTRIBUTING.md | Branch/PR workflow, validation, attribution and local-artifact policy |
-| Navigation | Short documentation paths and README links | PR #21 linked as an open contribution rather than a local main file |
+| Navigation | README links to the merged M4 error analysis and licensing scope | Analysis availability does not establish final course submission |
 | Older guides | Removed stale placeholder, submission and missing-validation statements | Historical experiments and measured results are preserved |
 
 ## Repository and ML evidence checked
 
-- **Tests:** all 158 main-branch unit/integration/E2E tests passed locally. Ruff
-  and pip check passed. Main's latest CI run was successful. This count excludes
-  the seven new tests in unmerged PR #21.
-- **Coverage:** pytest-cov reported 88% statement coverage over 676 measured
-  statements (81 missed). app.py was 99%, inference.py 97%, ml_baseline.py 100%,
-  and scripts/split_reviews.py 46%. A script with no imported execution can be
-  absent from this report, so this is not coverage of every repository file or
-  a reason to claim complete testing. Several remaining misses are CLI paths.
+- **Tests:** 190 unit/integration/browser tests passed during the November 24
+  PR #21 revalidation, including 14 focused error-analysis and 17 browser tests.
+  Ruff and pip check passed. Main `5545a8b` passed all six CI jobs. The earlier
+  November 23 count of 158 belongs to the original audit, before serving and
+  error-analysis regression tests were added.
+- **Coverage:** the same 190-test run reported 89% statement coverage over 824
+  measured statements (94 missed). app.py was 99%, inference.py 98%, the error
+  analysis CLI 91%, ml_baseline.py 100% and scripts/split_reviews.py 46%. Scripts
+  not imported in the measured process can be absent, so this is not coverage of
+  every repository file or a claim of complete testing. CLI coverage remains a
+  possible improvement.
 - **Release contract:** the three audited rc2 models' SHA-256 hashes and the
   canonical test CSV hash still match M3_RELEASE.json. The training/selection
   code fits only train/inner-fit inputs, freezes selection before final test
@@ -65,9 +74,12 @@ until separately reviewed and merged.
   reproduced the documented TF-IDF LR Positive example (98.6% probability).
   AppTest reported no application errors. This is a serving check, not a new
   accuracy measurement.
-- **Presentation checks:** 39 local Markdown paths/anchors resolve; all four
-  badge URLs returned SVGs. The screenshot is an unchanged byte-for-byte copy
-  of the recorded main deployment capture, not a mockup.
+- **Presentation checks:** documentation paths/anchors and genuine deployment
+  captures were validated in the documentation follow-ups. The README now has
+  CI, Python, model-release, demo and MIT badges. Its November 24 screenshots
+  show the current probability explanation and input guard, not mockups. The
+  [versioned rc2 release description](releases/v0.2.0-rc2.md) records main,
+  merged error analysis, 190-test validation and MIT/data scope.
 - **Software tests vs scientific evidence:** synthetic tests check contracts and
   regressions; the real-data report provides the measured model scores. Neither
   is a substitute for the other. No real-data retraining was performed here.
@@ -77,8 +89,8 @@ until separately reviewed and merged.
   dataset/model/secret filenames. This is a limited check, not proof that every
   possible secret or personal detail has been ruled out.
 - **Metadata:** repository is public; description and NLP topics already exist.
-  At the original audit, homepage was empty and GitHub detected no license.
-  The licensing follow-up adds MIT scope; repository settings remain unchanged.
+  Homepage remains empty. GitHub now detects MIT after PR #25; the original
+  missing-license finding is resolved. Repository settings remain unchanged.
 - **Attribution:** the team roster, Jacob's UI/data-script contributions, Sang's
   ML contributions and existing AI-assistance disclosure remain visible.
 
@@ -163,13 +175,14 @@ calibrator on training-only out-of-fold or separate calibration data. Do not
 fit it on the shared test or promise that class weighting improves calibration.
 Any changed pipeline needs a new version and its own validation.
 
-**8. Finish and review the error-analysis draft independently.** PR #21 adds
-paired error overlap, class/length diagnostics and eight inspected paraphrases.
-The refreshed CLI needs only the approved release models and canonical test CSV;
-a retained raw evaluation export is now an optional provenance/prediction
-cross-check. Both paths reproduce the same aggregates without training. Before
-merging, review the reproduced figures, case mappings and current CI. Do not market those cases as a representative prevalence
-study or call the optional analysis draft a completed M4 deliverable.
+**8. Frozen error analysis (completed and merged in PR #21).**
+The analysis provides paired error overlap, class/length diagnostics and eight
+inspected paraphrases. The CLI needs only approved release models and the
+canonical test CSV; a retained raw evaluation export is an optional cross-check.
+Both paths reproduce the same aggregates without training. All 27,765 retained
+predictions and eight case mappings matched, and all three figures reproduced
+pixel-identically. These retrospective cases are illustrative, not prevalence
+estimates or a completed M4 report/presentation.
 
 ### C. Reproduction and maintenance polish
 
@@ -182,11 +195,12 @@ improve this. Avoid upgrading sklearn under existing joblib artifacts without
 revalidation; [sklearn's persistence guidance](https://scikit-learn.org/stable/model_persistence.html)
 describes compatibility and trust constraints.
 
-**10. Improve documentation consistency and CLI coverage in focused changes.**
+**10. Maintain documentation consistency and improve CLI coverage.**
 The older ML/data guides' obsolete placeholder and missing-validation statements
 are corrected here. Some milestone-relative historical plans remain, and the
-requirements comment names rc1 while rc2 is current. Distinguish history from
-current status rather than silently rewriting results. The clean-checkout smoke
+requirements comment now identifies the current rc2 artifact contract without
+changing package pins. Completed PR #21 and MIT work are recorded above. Preserve
+historical experiment results while keeping current status explicit. The clean-checkout smoke
 check and local documentation-link check passed here; automating them and
 improving CLI branch coverage are possible follow-ups. No badge should promise
 100% coverage.
@@ -207,8 +221,8 @@ settings remain unchanged.
 
 ## Review and publication checks
 
-Before sharing the portfolio link, review PR #21 separately, keep model/metric
-claims tied to rc2, and confirm the demo is reachable
+Before sharing the portfolio link, keep model/metric claims tied to rc2 and
+confirm the demo is reachable
 at the time of sharing. Keep M3 PDF updating and the M4 report/presentation as
 course tasks; a polished README cannot stand in for their submission. For any
 future serving fix, repeat model selection/prediction and error-path checks.
@@ -228,6 +242,6 @@ matter more than decorative badges.
 
 Implementation evidence comes from the reviewed source and canonical local
 artifacts; the external guidance supplies review criteria, not evidence that
-this particular model is reliable. Except for the explicitly marked serving and
-licensing follow-ups, the remaining action items are proposals rather than
-implemented improvements.
+this particular model is reliable. Serving fixes, licensing and frozen error
+analysis are completed work. Generalization/calibration studies, environment/CI
+maintenance and repository metadata polish remain proposed improvements.

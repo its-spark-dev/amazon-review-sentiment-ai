@@ -214,14 +214,15 @@ Never commit `.env` or `.streamlit/secrets.toml`.
 **Group Psi · CSE 3521 — Survey of Artificial Intelligence I · The Ohio State
 University · Autumn 2026 · Instructor: Dr. Thomas Torku**
 
-Status as of **November 23, 2026**, with submission updates confirmed by the team:
+Technical status as of **November 24, 2026**. Submission statuses remain those
+last confirmed by the team; no new PDF submission is inferred:
 
 | Milestone | Deadline | Status |
 | --- | --- | --- |
 | M1 — Project Charter & Scope | Nov 10 | **Submitted** |
 | M2 — Initial Solution | Nov 15 | **Submitted** |
 | M3 — Refined Solution & App Prototype | Nov 22 | Implementation and deployment verified; PDF update pending |
-| M4 — Final Report & Presentation | Nov 29 (report) | **Not started** |
+| M4 — Final Report & Presentation | Nov 29 (report) | Error-analysis materials ready; final report and presentation pending |
 
 Report deadlines are 11:59 PM EST; M1 was extended from Nov 8 to Nov 10.
 The team presentation plan is Dec 3; consult Carmen for the official demo schedule.
