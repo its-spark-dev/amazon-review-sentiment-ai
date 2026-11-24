@@ -90,8 +90,9 @@ are refused. Override with `--output-dir`; `--epochs`, `--max-features` and
 
 Artifacts include review text and split identities. Keep the entire output folder
 local. Only load trusted joblib files. The runner does not deploy the app or
-assemble the final M3 team PDF. Hosted staging validation and locally captured
-report screenshots are recorded in the [M3 results](M3_RESULTS.md#hosted-staging-status).
+assemble the final M3 team PDF. Hosted [main validation](M3_RESULTS.md#hosted-main-status),
+[staging validation](M3_RESULTS.md#hosted-staging-status), and locally captured
+screenshots are recorded in the M3 results.
 
 ## Canonical report/demo version
 
@@ -102,3 +103,11 @@ Use `--output-dir outputs/m3/release-rc2` for a fresh canonical rebuild. The run
 exports `model_hashes.json` as well as the existing records. Do not overwrite an
 existing release: any intentional retraining needs a new version and updated
 provenance/manifest. See the README for the hash-verified release demo command.
+
+The [main app](https://amazon-sentiment-ai.streamlit.app/) serves this release
+from `main` on Python 3.11.18; the separate
+[staging app](https://amazon-sentiment-ai-preview.streamlit.app/) serves it from
+`staging` on Python 3.14. Both were rebooted and verified on November 23, 2026
+(EST), with 14 synthetic hosted checks per app. Deployment verification does not
+rerun training or replace the canonical evaluation. Configure the model tag in
+each app's Streamlit secrets settings; a Git merge does not transfer that setting.
