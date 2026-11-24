@@ -84,12 +84,18 @@ def main() -> None:
         paths = model_paths()  # local mode; release mode lists only verified report models
     options = [str(p) for p in paths]
     if st.session_state.get("model_choice") not in options:
-        st.session_state.pop("model_choice", None)  # removed file: fall back to default
-    selected = Path(st.session_state.get("model_choice", options[0])) if options else None
+        if paths:
+            default = next((p for p in paths if p.name == "tfidf_lr.joblib"), paths[0])
+            st.session_state["model_choice"] = str(default)
+        else:
+            st.session_state.pop("model_choice", None)
+    selected = Path(st.session_state["model_choice"]) if options else None
     sidebar(selected, len(paths))
 
     st.title("Amazon Review Sentiment AI")
-    st.caption("Classify a food product review as Negative, Neutral, or Positive.")
+    st.caption("Classify an English food product review as Negative, Neutral, or Positive.")
+    if release_tag:
+        st.caption("Recommended rc2 model: tfidf_lr, selected by validation Macro-F1.")
 
     model = load_selected(selected) if selected else None
     if not paths:
@@ -140,7 +146,11 @@ def main() -> None:
     st.subheader(label)
     probs = result["probabilities"]
     if probs:
-        st.metric("Confidence", f"{probs[label]:.0%}" if label in probs else "—")
+        st.metric("Predicted-class probability", f"{probs[label]:.1%}" if label in probs else "—")
+        st.caption(
+            "Probabilities are uncalibrated model estimates. "
+            "High values can still accompany incorrect predictions."
+        )
         chart = pd.DataFrame({"Probability": [probs[c] for c in CLASS_LABELS]}, index=list(CLASS_LABELS))
         st.bar_chart(chart, horizontal=True)
         st.caption(" · ".join(f"{c}: {probs[c]:.1%}" for c in CLASS_LABELS))

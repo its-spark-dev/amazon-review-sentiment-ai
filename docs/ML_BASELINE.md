@@ -1,10 +1,9 @@
 # ML baseline — Group Psi
 
 CSE 3521, Autumn 2026, The Ohio State University. This contribution provides
-dataset-independent building blocks for the first classical baseline, using
-scikit-learn. Milestone 1 has been submitted; M2 is the next milestone on
-November 15, 2026. M1 includes the team plan and initial dataset exploration,
-and this module has now been exercised on the shared real-data split through
+dataset-independent building blocks for the original classical baseline, using
+scikit-learn. M1 and M2 have been submitted. This module has been exercised on
+the shared real-data split through
 `run_m2_baseline.py`. See [M2 results](M2_BASELINE_RESULTS.md) for measured results.
 
 ## Implemented API
@@ -78,12 +77,12 @@ findings are separate from this module's synthetic validation. Dataset files are
 implemented in `scripts/`; see the data guide for preparation commands. The rating helper
 defines the agreed label mapping without reading or modifying data.
 
-The submitted M1 timeline plans a shared **80/20 train/test split** for M2,
-alongside cleaning and BoW/TF-IDF preparation. Coordinate duplicate handling,
-the shared split, text/label interface, and use of the existing vectorizer
-factories with the Data Engineer before real-data fitting. Ensure a repeated
-review cannot occur in both partitions. Any additional validation or tuning protocol
-still needs agreement. The ML pipeline expects a sequence
+The submitted M1 timeline planned a shared **80/20 train/test split** for M2,
+alongside cleaning and BoW/TF-IDF preparation. Those shared files and duplicate
+rules are now recorded in the data guide. Coordinate future changes to the
+split, text/label interface and vectorizer definitions with Data and ML rather
+than replacing them silently. The implemented M3 training-only validation
+protocol is described in [M3 training](M3_TRAINING.md). The ML pipeline expects a sequence
 of nonempty review strings and aligned sentiment label strings. Fit the entire
 pipeline **only on training texts and labels**, then call `predict` on validation
 or test texts. Never fit a vectorizer on the full dataset or refit it on held-out

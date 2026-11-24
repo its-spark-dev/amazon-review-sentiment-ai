@@ -100,6 +100,15 @@ def app_url_multi_model(tmp_path_factory, models_dir):
         yield url
 
 
+@pytest.fixture(scope="session")
+def app_url_recommended_model(tmp_path_factory):
+    root = tmp_path_factory.mktemp("e2e_recommended")
+    synthetic.save_model(root / "bow_lr.joblib", flipped=True)
+    synthetic.save_model(root / "tfidf_lr.joblib", representation="tfidf")
+    with streamlit_server(root / "streamlit.log", model_dir=root) as url:
+        yield url
+
+
 @pytest.fixture
 def app(page, app_url):
     page.goto(app_url)

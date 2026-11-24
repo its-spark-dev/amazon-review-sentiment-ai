@@ -3,6 +3,7 @@
 import pytest
 
 from inference import model_path
+import synthetic
 
 pytestmark = pytest.mark.integration
 
@@ -23,7 +24,8 @@ def test_sample_button_fills_review_then_predicts(model_file, app_test, name):
     at.button[-1].click().run()
     assert not at.exception
     assert len(at.main.subheader) == 1
-    assert at.main.metric[0].label == "Confidence"
+    assert at.main.metric[0].label == "Predicted-class probability"
+    assert any("uncalibrated model estimates" in c.value for c in at.main.caption)
 
 
 def test_typed_review_overrides_sample(model_file, app_test):
@@ -59,3 +61,23 @@ def test_no_prediction_rendered_before_submit(model_file, app_test):
     at = app_test(model_file)
     assert not at.main.subheader and not at.main.metric
     assert not at.button[-1].disabled
+
+
+@pytest.mark.parametrize("text", ["🍪🍪🍪", "이 음식은 맛있어요", "quuxzzblorb snarglexyz"])
+def test_unknown_vocabulary_clears_result_and_known_text_recovers(model_file, app_test, text):
+    at = app_test(model_file)
+    at.text_area(key="review").input("fantastic fresh delicious")
+    at.button[-1].click().run()
+    assert at.main.subheader[0].value == "Positive"
+
+    at.text_area(key="review").input(text)
+    at.button[-1].click().run()
+    assert not at.exception and not at.error
+    assert "No words in this review are recognized" in at.warning[0].value
+    assert not at.main.subheader and not at.main.metric
+    assert not synthetic.vega_charts(at)
+
+    at.text_area(key="review").input("awful stale terrible")
+    at.button[-1].click().run()
+    assert not at.warning
+    assert at.main.subheader[0].value == "Negative"

@@ -1,248 +1,236 @@
 # Amazon Review Sentiment AI
 
-![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=flat)
-![M2 Complete](https://img.shields.io/badge/M2-Complete-2E7D32?style=flat)
-![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat)
+**Five sentiment models, one reproducible comparison, and a live review classifier.**
 
-Three-class sentiment analysis of Amazon Fine Food Reviews, with reproducible
-classical ML baselines, evaluation tools, and a Streamlit inference UI with a
-verified main deployment and a separate staging demo.
+[![CI](https://github.com/its-spark-dev/amazon-review-sentiment-ai/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/its-spark-dev/amazon-review-sentiment-ai/actions/workflows/ci.yml)
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](#run-locally)
+[![Models v0.2.0-rc2](https://img.shields.io/badge/models-v0.2.0--rc2-5264AE)](https://github.com/its-spark-dev/amazon-review-sentiment-ai/releases/tag/v0.2.0-rc2)
+[![Open Streamlit demo](https://img.shields.io/badge/Streamlit-live_demo-FF4B4B?logo=streamlit&logoColor=white)](https://amazon-sentiment-ai.streamlit.app/)
 
-**Live app:** [amazon-sentiment-ai.streamlit.app](https://amazon-sentiment-ai.streamlit.app/)
+[**Try the app**](https://amazon-sentiment-ai.streamlit.app/) ·
+[Results and protocol](docs/M3_RESULTS.md) ·
+[Model card](docs/MODEL_CARD.md) ·
+[Training guide](docs/M3_TRAINING.md) ·
+[Portfolio review](docs/PORTFOLIO_READINESS.md)
 
-## Project Overview
+Classify food reviews as **Negative, Neutral, or Positive** using Bag of Words
+and TF-IDF with Multinomial Naive Bayes, Logistic Regression, and a small
+feedforward MLP. This team project connects dataset preparation, training-only
+validation, traceable evaluation, versioned model artifacts, and Streamlit deployment.
 
-Built by **Group Psi** for **CSE 3521 — Survey of Artificial Intelligence I**,
-Autumn 2026, at **The Ohio State University**. Instructor: **Dr. Thomas Torku**.
+The main engineering lesson: **the model with the highest accuracy is not
+necessarily the best choice for minority-class recognition.** TF-IDF LR is the
+validation-selected recommendation; MLP has the highest observed test accuracy.
+This is an educational ML demonstration, with the evaluation limits documented below.
 
-The task maps ratings **1–2 to Negative, 3 to Neutral, and 4–5 to Positive**.
-Models use review text as input; ratings define the target and are not features.
-The planned final system will compare at least two feature representations,
-two classical models, and a deep learning model through a deployed Streamlit app.
+![Live main app showing a TF-IDF LR prediction and three-class probabilities](docs/assets/demo.jpg)
 
-## Current Status
+*Actual main deployment, captured November 24, 2026 after PR #23 and a full
+reboot. TF-IDF LR is the initial selection; probabilities are explicitly labeled
+as uncalibrated estimates. This example's 98.6% is not test accuracy.*
 
-As of **November 23, 2026**:
+<details>
+<summary>Input guard example</summary>
 
-| Milestone | Deadline | Status |
-| --- | --- | --- |
-| M1 — Project Charter & Scope | Nov 10, 2026 | Submitted |
-| M2 — Initial Solution | Nov 15, 2026 | Technical implementation complete; submission not confirmed |
-| M3 — Refined Solution & App Prototype | Nov 22, 2026 | ML comparison and main/staging apps verified; final PDF/submission unconfirmed |
-| M4 — Final Report | Nov 29, 2026 | Planned |
+![Main app withholding a prediction for an emoji-only input with no recognized vocabulary](docs/assets/input-guard.jpg)
 
-Milestone deadlines are **11:59 PM EST**. M1 was extended from November 8 to
-November 10. The **M2 Complete** badge denotes technical completion, not confirmed
-submission or completion of the entire project. Final PDF assembly and submission confirmation are team responsibilities.
+*The selected model recognizes no vocabulary features, so the app shows an
+explanation and withholds the label and probabilities. This is a vocabulary
+check, not language or out-of-domain detection.*
 
-## Key Results — Milestone 2
+</details>
 
-A **50,000-review sample with seed 48** retained **46,278 reviews after cleaning**.
-The shared split contains **37,023 training / 9,255 test reviews**, approximately
-80/20. Identical cleaned texts stay in one partition to prevent text overlap;
-stratification is performed over distinct texts using their first labels.
+## What is implemented
 
-Both Bag of Words (BoW) and TF-IDF learn **36,995 features from training text
-only**. Fixed-setting Multinomial Naive Bayes models are compared with a baseline
-that always predicts the most common training label, Positive.
+- **Training-only feature learning:** selection fits vocabulary/IDF on inner-fit
+  rows; final refits use outer training and never the test set.
+- **Explicit model selection:** LR settings and the MLP epoch are selected by
+  validation Macro-F1, then refitted on outer training before test evaluation.
+- **Reproducible handoff:** deterministic vocabulary tie handling, input/source/model
+  hashes, loss history and measured environment versions in [provenance](docs/M3_RELEASE.json).
+- **Release-backed inference:** five hash-verified pipelines, shared preparation/
+  inference cleaning, input validation, model switching and cache invalidation.
+- **Automated checks:** synthetic unit, integration and browser tests; CI also
+  checks lint, dependencies and tracked-file hygiene. Test success is not model-quality evidence.
 
-| Model | Test Accuracy | Macro-F1 |
-| --- | ---: | ---: |
-| Majority-class baseline | 77.97% | 0.2921 |
-| **BoW + Multinomial Naive Bayes** | **83.39%** | **0.5524** |
-| TF-IDF + Multinomial Naive Bayes | 77.97% | 0.2931 |
+## Current results: canonical rc2
 
-BoW + Naive Bayes is the **best measured M2 baseline**, not the final model.
-Neutral classification remains challenging: its BoW recall is only **8.33%**.
-TF-IDF + Naive Bayes predicts almost every test review as Positive under the
-current defaults. No hyperparameter tuning or model selection used test results.
+A seed-48 sample of **50,000** Amazon Fine Food Reviews yields **46,278** cleaned
+rows: **37,023 train / 9,255 test**. Grouping by identical cleaned text prevents
+exact-text overlap. Inner fit/validation sizes are **29,622 / 7,401**.
 
-See [M2 baseline results](docs/M2_BASELINE_RESULTS.md) for the complete evaluation,
-feature rankings, confusion matrices, ten inspected errors, and reproducibility
-record. These are measured real-data results; synthetic regression tests serve
-a separate purpose and are not performance evidence.
+| Model | Test accuracy | Macro precision | Macro recall | Macro-F1 |
+| --- | ---: | ---: | ---: | ---: |
+| Majority class | 77.97% | 0.2599 | 0.3333 | 0.2921 |
+| BoW + Naive Bayes | 81.67% | 0.6103 | 0.6260 | **0.6177** |
+| TF-IDF + Naive Bayes | 79.56% | 0.5468 | 0.3726 | 0.3647 |
+| BoW + Logistic Regression | 83.51% | 0.6278 | 0.5808 | 0.5991 |
+| TF-IDF + Logistic Regression | 76.93% | 0.5957 | **0.6838** | 0.6162 |
+| TF-IDF + MLP | **84.01%** | **0.6374** | 0.5828 | 0.6021 |
 
-M3 extends this baseline with validation-selected Logistic Regression and MLP,
-loss curves and timed comparisons. See [M3 results](docs/M3_RESULTS.md) and
-[training instructions](docs/M3_TRAINING.md); M2 results above are preserved.
-See [M4 error analysis](docs/M4_ERROR_ANALYSIS.md) for frozen rc2 error overlap,
-class/length diagnostics, and manually inspected examples without retraining.
+**Recommendation:** TF-IDF LR (`C=0.5`, balanced weights) had the highest
+validation Macro-F1, **0.6170**. On test, its Neutral recall is **54.52%**, versus
+**19.21%** for MLP, with lower overall accuracy and Neutral precision. Test rankings
+were not used to change that recommendation. The app initially selects `tfidf_lr`
+when available and preserves your choice across reruns. In local mode, a single
+`SENTIMENT_MODEL_PATH` override still takes precedence; without `tfidf_lr`, the
+existing first available model is used.
 
-## Implementation
+All five trained models use 10,000 word-unigram features. The MLP has one hidden
+layer of 32 ReLU units and uses validation-selected epoch 13. It does not model
+word order. See [full results](docs/M3_RESULTS.md) for training times, per-class
+metrics, confusion matrices and loss analysis. [Historical M2 results](docs/M2_BASELINE_RESULTS.md)
+use 36,995 features and remain a separate experiment.
+[Error analysis](docs/M4_ERROR_ANALYSIS.md) compares frozen rc2 error overlap,
+class/length diagnostics and eight inspected paraphrases without retraining.
 
-- Reproducible sampling, text cleaning, and the shared grouped train/test split.
-- Three-class label mapping, BoW/TF-IDF extraction, and Naive Bayes pipelines.
-- Majority-class comparison, macro/per-class metrics, and confusion matrices.
-- Local JSON/CSV exports, feature visualizations, and traceable error lists.
-- Streamlit review input, sample reviews, predicted labels, and class probabilities.
-- Automated synthetic regression tests for data preparation, ML tools, and the UI.
+## Run locally
 
-**No dataset or trained model artifact is committed.** A fresh clone runs the UI
-with a no-model notice and analysis disabled. Predictions require a compatible
-locally saved pipeline. The app lists every `*.joblib` file in `models/` (or the
-directory set by `SENTIMENT_MODEL_DIR`); when more than one is found, a model
-selector appears next to the submit button, with `sentiment_pipeline.joblib`
-preselected if present. The choice is applied when the review is submitted; if
-the selected file cannot be loaded, an error is shown and you can pick another
-model. Setting `SENTIMENT_MODEL_PATH` restricts the app to that single file. Inference applies the same HTML/entity/whitespace/lowercase cleaning as training.
-Inputs empty after cleaning are rejected. Model additions, replacements, and removals are detected on the next
-app rerun; unchanged files reuse the cached resource.
-
-API and usage details: [ML baseline](docs/ML_BASELINE.md) ·
-[M2 execution and analysis](docs/M2_ANALYSIS.md).
-
-### Reproduce or demonstrate M3
-
-```bash
-# Requires the prepared shared CSV splits; never changes the outer test split.
-python scripts/run_m3_comparison.py --output-dir outputs/m3/my-run
-# Uses the canonical report artifacts; requires network on first download.
-MODELS_VERSION_TAG=v0.2.0-rc2 python -m streamlit run app.py
-```
-
-On PowerShell, set `$env:MODELS_VERSION_TAG="v0.2.0-rc2"` before launching the app.
-In release mode, only verified models for this report version are listed; old
-local model files are excluded. Update any staging/cloud environment still set
-to `v0.1.0-rc1`; the app now rejects that historical demo version.
-The [M3 report](docs/M3_RESULTS.md) and [provenance](docs/M3_RELEASE.json) identify
-the exact hashes, metrics, loss history and timings. Training and test files stay
-local. A fresh clone can run the release demo without the dataset; training needs it.
-The [main app](https://amazon-sentiment-ai.streamlit.app/) and
-[staging demo](https://amazon-sentiment-ai-preview.streamlit.app/) were verified
-on November 23, 2026 with this release. Official M3 submission is not confirmed.
-
-## Project Structure
-
-```text
-amazon-review-sentiment-ai/
-├── README.md
-├── app.py                    # Streamlit interface
-├── inference.py              # Model loading and review prediction
-├── ml_baseline.py            # Labels, vectorizers, NB pipelines, metrics
-├── m2_analysis.py            # Comparison and analysis exports
-├── requirements.txt          # Runtime dependencies
-├── requirements-dev.txt      # Test, lint and audit tooling
-├── pyproject.toml            # pytest and ruff configuration
-├── .github/workflows/ci.yml  # GitHub Actions CI
-├── .streamlit/config.toml    # Theme and server settings
-├── scripts/                  # Sampling, cleaning, splitting, real-data execution
-├── data/                     # Dataset guide; local CSVs are ignored
-├── docs/                     # Methods, usage, and measured M2 results
-├── tests/                    # Synthetic unit tests, integration/ and e2e/
-├── models/                   # Local model artifacts; ignored
-├── notebooks/                # Reserved for notebooks
-└── report/                   # Reserved for written deliverables
-```
-
-## Getting Started
-
-Use **Python 3.11**. On macOS or Linux:
+**Python 3.11.** The release demo needs no dataset or Kaggle credentials; first
+launch needs package access and downloads the approved artifacts from GitHub.
 
 ```bash
 git clone https://github.com/its-spark-dev/amazon-review-sentiment-ai.git
 cd amazon-review-sentiment-ai
 python3.11 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements-dev.txt
-python -m pytest -m "not integration and not e2e"
+python -m pip install -r requirements.txt
+MODELS_VERSION_TAG=v0.2.0-rc2 python -m streamlit run app.py
+```
+
+Open the printed local URL, normally `http://localhost:8501`. Enter an English
+food review, choose a model, and click **Analyze sentiment**. Labels follow
+ratings: **1–2 → Negative, 3 → Neutral, 4–5 → Positive**.
+
+On Windows, create the environment with `py -3.11 -m venv .venv`, activate with
+`.venv\Scripts\Activate.ps1`, install requirements, and run:
+
+```powershell
+$env:MODELS_VERSION_TAG="v0.2.0-rc2"
 python -m streamlit run app.py
 ```
 
-On Windows, create the environment with `py -3.11 -m venv .venv` and activate it
-with `.venv\Scripts\Activate.ps1` in PowerShell, then run the same installation,
-test, and app commands. Open Streamlit's printed local URL, normally
-`http://localhost:8501`; stop the server with `Ctrl+C`.
+Without a release tag, the app discovers local `models/*.joblib` files and shows
+a no-model notice on a fresh clone. `SENTIMENT_MODEL_DIR` changes that directory;
+`SENTIMENT_MODEL_PATH` restricts **local mode** to one artifact. Release mode
+lists only the five manifest-verified rc2 models. Only load trusted team artifacts.
 
-`requirements-dev.txt` includes the runtime dependencies and test tooling. For
-running the app without tests, install only `requirements.txt`. Use pytest for
-the suite: `unittest discover` does not execute the pytest-style regression tests.
+## Reproduce training
 
-### Tests and CI
+Download `Reviews.csv` from [Kaggle](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews)
+and place it in `data/`. The [data guide](data/README.md) explains cleaning,
+deduplication and grouped splitting. Dataset files and generated models stay local.
 
-Install the development tooling and a browser for the end-to-end tests:
+```bash
+python scripts/make_group_sample.py
+python scripts/clean_reviews.py
+python scripts/split_reviews.py
+python scripts/run_m3_comparison.py --output-dir outputs/m3/my-run
+```
+
+Use a new/empty output directory. The runner selects settings within training
+and evaluates the supplied test split; it never resplits that test file.
+A rerun's timings or serialized bytes can differ. The approved demo uses the
+recorded rc2 artifacts, rather than silently replacing them with a rerun.
+[Training details](docs/M3_TRAINING.md) · [M2 execution tools](docs/M2_ANALYSIS.md)
+
+```mermaid
+flowchart LR
+    A[Reviews.csv] --> B[Seed-48 sample and cleaning]
+    B --> C[Shared text-grouped split]
+    C --> D[Training-only validation and selection]
+    D --> E[Full-training refit]
+    E --> F[rc2 pipelines and hashes]
+    C --> G[Fixed test partition]
+    F --> H[Evaluation and report]
+    G --> H
+    F --> I[Verified download and Streamlit inference]
+```
+
+## Tests and CI
 
 ```bash
 python -m pip install -r requirements-dev.txt
+python -m pytest -m "not integration and not e2e"
+python -m pytest -m integration
 python -m playwright install chromium
+python -m pytest -m e2e
+ruff check .
 ```
 
-| Command | Runs |
-| --- | --- |
-| `ruff check .` | Lint (rules in `pyproject.toml`) |
-| `python -m pytest -m "not integration and not e2e"` | Unit tests, including release and preprocessing regressions |
-| `python -m pytest -m integration` | Data pipeline → saved model → inference → app, via `AppTest` |
-| `python -m pytest -m e2e` | Chromium against a live `streamlit run` server |
-| `python -m pytest --cov` | Everything, with coverage |
+Use `python -m pytest --cov` for the full suite with coverage. All tests use
+synthetic inputs and temporary models, with no Kaggle data or external inference
+service. The [workflow](.github/workflows/ci.yml) runs on pull requests and main
+pushes. Development dependencies include the runtime requirements.
 
-All tests use generated synthetic data (`tests/synthetic.py`) and temporary
-model files; none need the dataset. GitHub Actions (`.github/workflows/ci.yml`)
-runs lint, a repository hygiene check (no datasets, models or secrets
-committed), `pip check` and `pip-audit`, and the unit tests. Integration and
-end-to-end tests then run against the exact versions pinned in `requirements.txt`,
-the set the release models were verified with. Playwright traces of any failures
-are uploaded as artifacts.
+## Evaluation limits
 
-Installation needs package access. Tests and the no-model UI do **not** require
-the dataset, credentials, or an external inference service.
+- Ratings supply the labels; they are not independent human sentiment annotations.
+  Positive reviews are about 78% of the test set, so accuracy needs macro/per-class context.
+- The test set was already inspected during M2 and reused for comparison. This is
+  a single split/seed, with no confidence intervals or statistical superiority claims.
+- Splits group exact cleaned text, not users, products, near-duplicates or time.
+  Results do not establish generalization to unseen users/products or current reviews.
+- English food-review text is the intended domain. BoW/TF-IDF pipelines withhold
+  predictions when no vocabulary features are recognized after cleanup. This is
+  a vocabulary check; partially recognized and out-of-domain inputs can still be wrong.
+- “Predicted-class probability” displays the model's uncalibrated probability
+  with one decimal place. High values can still accompany incorrect predictions.
+  The demo is not a production monitoring or moderation system.
 
-To work with real data, first obtain `data/Reviews.csv` and follow the
-[data preparation guide](data/README.md). The sampling, cleaning, and splitting
-scripts require the dataset and produce local CSVs. Once the shared train/test
-files exist, run:
+The [model card](docs/MODEL_CARD.md) describes the data, intended use and limits.
+The [portfolio review](docs/PORTFOLIO_READINESS.md) records evidence and follow-up
+work. The [frozen rc2 error analysis](docs/M4_ERROR_ANALYSIS.md) provides
+retrospective diagnostics without changing the validation recommendation.
 
-```bash
-python scripts/run_m2_baseline.py --model-output models/sentiment_pipeline.joblib
-```
+## Deployment
 
-The runner never resplits the supplied data. It writes local results under
-`outputs/m2/real-baseline/` and optionally saves the predeclared BoW model for the
-app. It refuses nonempty output directories and existing model artifacts; use a
-fresh `--output-dir` and omit `--model-output` when repeating evaluation without
-saving another model. See the [M2 reproduction instructions](docs/M2_BASELINE_RESULTS.md)
-for settings, input hashes, and exact measured software versions. Pinned runtime
-versions are in `requirements.txt`; each run also exports `requirements-run.txt`
-with pinned package versions locally.
-
-Keep datasets, generated outputs, and secrets out of Git. Only load joblib model
-files from trusted team sources: loading them can execute code.
-
-## Roadmap
-
-- **M3 — In progress:** Logistic Regression, MLP, training-internal validation,
-  loss curves and model comparisons are implemented. The hosted multi-model
-  main and staging apps are verified and two report screenshots have been captured locally.
-  Adding them to the final PDF and confirming submission remain team tasks.
-- **M4 — Planned:** Final report and presentation slides, deployment maintenance,
-  and final project verification. The team timeline schedules an
-  **8-minute presentation + 2-minute Q&A on December 3, 2026**.
-
-Both apps run on
-[Streamlit Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app)
-with `app.py`, the root `requirements.txt`, and `MODELS_VERSION_TAG="v0.2.0-rc2"`.
-
-| App | Branch | Cloud Python | Verification |
+| Environment | Branch | Python | Model release |
 | --- | --- | --- | --- |
-| [Main](https://amazon-sentiment-ai.streamlit.app/) | `main` | 3.11.18 | Rebooted; 14 hosted checks passed on Nov 23, 2026 (EST) |
-| [Staging](https://amazon-sentiment-ai-preview.streamlit.app/) | `staging` | 3.14 | Rebooted; 14 hosted checks passed on Nov 23, 2026 (EST) |
+| [Main demo](https://amazon-sentiment-ai.streamlit.app/) | `main` | 3.11.18 | `v0.2.0-rc2` |
+| [Staging](https://amazon-sentiment-ai-preview.streamlit.app/) | `staging` | 3.14 | `v0.2.0-rc2` |
 
-Each app passed positive/negative prediction checks for all five models, HTML
-preprocessing parity, and markup-only/empty-input rejection. Displayed
-probabilities matched the canonical local rc2 models. These synthetic checks
-validate app behavior, not additional held-out performance measurements.
-Main was deployed after [PR #19](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/19)
-passed all six CI checks and merged at `216720c`. Staging remains separate.
-Report screenshots and the main verification screenshot/log were captured locally
-and are not committed. Training and the documented local/CI environment use
-Python 3.11; the staging checks do not establish equivalent training across versions.
+**Main verified November 24, 2026** after
+[PR #23](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/23)
+merged at `9a29272` and the app was fully rebooted. A new session selected
+`tfidf_lr`; the probability label, one-decimal display and uncalibrated-estimate
+explanation were visible. Across all five models, 10 positive/negative predictions
+matched canonical rc2 labels and displayed probabilities, 15 zero-feature probes
+were withheld, and five valid-input recoveries passed. Empty and markup-only
+input checks also passed. [Deployment verification details](docs/M3_RESULTS.md#hosted-main-status)
 
-Branch merges do not copy Streamlit settings. When changing model releases,
-configure the model tag separately for each app, reboot, and verify predictions.
-Store settings in the platform's secrets editor; never commit `.env` or
-`.streamlit/secrets.toml`.
+Staging's last recorded verification remains **November 23**: 14 hosted checks
+with rc2. The November 24 serving update was verified on main only. These dated
+checks are not an uptime guarantee or new model-performance measurements.
+Configure the model tag separately in each app's Streamlit secrets editor;
+branch merges do not transfer it. After serving-module changes, reboot and
+verify behavior; automatic code refresh initially retained the old inference
+behavior during this deployment.
+Never commit `.env` or `.streamlit/secrets.toml`.
 
-## Team and Acknowledgments
+## Course and project status
 
-| Member | Confirmed primary role |
+**Group Psi · CSE 3521 — Survey of Artificial Intelligence I · The Ohio State
+University · Autumn 2026 · Instructor: Dr. Thomas Torku**
+
+Status as of **November 23, 2026**, with submission updates confirmed by the team:
+
+| Milestone | Deadline | Status |
+| --- | --- | --- |
+| M1 — Project Charter & Scope | Nov 10 | **Submitted** |
+| M2 — Initial Solution | Nov 15 | **Submitted** |
+| M3 — Refined Solution & App Prototype | Nov 22 | Implementation and deployment verified; PDF update pending |
+| M4 — Final Report & Presentation | Nov 29 (report) | **Not started** |
+
+Report deadlines are 11:59 PM EST; M1 was extended from Nov 8 to Nov 10.
+The team presentation plan is Dec 3; consult Carmen for the official demo schedule.
+M3's technical and app work is complete; its remaining task is updating the PDF.
+M4's final report and presentation are still outstanding; implementation completion
+is not project completion.
+
+## Team, attribution and contributing
+
+| Member | Primary role |
 | --- | --- |
 | Zachary Funk | Project Lead |
 | Sang Park | ML Engineer |
@@ -250,15 +238,15 @@ Store settings in the platform's secrets editor; never commit `.env` or
 | Yash Amin | Analyst / Writer |
 | Abderrachid Sghir | Data Engineer |
 
-Roles follow the submitted M1 charter. Sang implemented the ML execution and
-analysis work; Jacob contributed the Streamlit UI and shared data preparation
-scripts ([PR #7](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/7),
-[PR #8](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/8)). The
-Git history records individual contributions; use focused branches and pull
-requests and run relevant tests before proposing changes.
+Roles follow the submitted M1 charter. Sang implemented ML training, evaluation,
+analysis and model handoff work; Jacob contributed the Streamlit UI and shared
+preparation scripts ([PR #7](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/7),
+[PR #8](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/8)). Other
+contributions remain credited through team reports and Git history. AI assistance
+for implementation and draft technical notes is disclosed in [M2 results](docs/M2_BASELINE_RESULTS.md).
+Final interpretation and writing are reviewed and owned by the team.
 
-Dataset: **Amazon Fine Food Reviews**, published by SNAP on
-[Kaggle](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews).
-AI assistance for implementation and draft technical notes is disclosed in the
-[M2 results document](docs/M2_BASELINE_RESULTS.md); final analysis and submission
-writing should be reviewed and owned by the team.
+See [contribution guidelines](CONTRIBUTING.md) for focused branches, validation and
+artifact handling. Data source: [SNAP Amazon Fine Foods](https://snap.stanford.edu/data/web-FineFoods.html),
+distributed on Kaggle. **No code license is declared yet**; public visibility does
+not by itself declare reuse terms. Dataset terms are separate from code licensing.
