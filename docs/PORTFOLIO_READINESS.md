@@ -163,9 +163,10 @@ Any changed pipeline needs a new version and its own validation.
 
 **8. Finish and review the error-analysis draft independently.** PR #21 adds
 paired error overlap, class/length diagnostics and eight inspected paraphrases.
-Its local prerequisites include a retained canonical raw evaluation export,
-which is intentionally not public. Before merging, review that provenance and
-reproduction boundary. Do not market those cases as a representative prevalence
+The refreshed CLI needs only the approved release models and canonical test CSV;
+a retained raw evaluation export is now an optional provenance/prediction
+cross-check. Both paths reproduce the same aggregates without training. Before
+merging, review the reproduced figures, case mappings and current CI. Do not market those cases as a representative prevalence
 study or call the optional analysis draft a completed M4 deliverable.
 
 ### C. Reproduction and maintenance polish

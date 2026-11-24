@@ -59,3 +59,94 @@ def test_inconsistent_exports_are_rejected(problem):
 def test_empty_export_is_rejected():
     with pytest.raises(ValueError, match='nonempty'):
         summarize({n: [] for n in MODELS})
+
+
+@pytest.fixture
+def frozen_run(tmp_path, monkeypatch):
+    """Tiny synthetic artifacts with their own canonical report; no real data."""
+    import json
+
+    import joblib
+    import pandas as pd
+    from sklearn.pipeline import Pipeline
+
+    from ml_baseline import create_nb_pipeline, evaluate_predictions
+    from scripts import analyze_m4_errors as analysis
+
+    texts = ['awful stale', 'ordinary average', 'fresh tasty', 'fresh delicious']
+    labels = ['Negative', 'Neutral', 'Positive', 'Positive']
+    frame = pd.DataFrame({'Id': ['1', '2', '3', '4'], 'Text': texts, 'Sentiment': labels})
+    test = tmp_path / 'test.csv'
+    frame.to_csv(test, index=False)
+    models = tmp_path / 'models'
+    models.mkdir()
+    report = {'release_tag': 'synthetic', 'input_sha256': {'test': analysis.sha256(test)},
+              'test_size': 4, 'model_sha256': {}, 'runs': {}}
+    export = {'metadata': {'input_sha256': report['input_sha256']}, 'runs': {}}
+    for name in MODELS:
+        model = create_nb_pipeline('bow').fit(texts, labels)
+        path = models / f'{name}.joblib'
+        joblib.dump(model, path)
+        predicted = model.predict(texts).tolist()
+        report['model_sha256'][path.name] = analysis.sha256(path)
+        report['runs'][name] = {'metrics': evaluate_predictions(labels, predicted)}
+        export['runs'][name] = {'predictions': [dict(test_index=i, review_id=str(row.Id),
+            text=row.Text, true_label=row.Sentiment, predicted_label=label)
+            for i, (row, label) in enumerate(zip(frame.itertuples(index=False), predicted))]}
+    (tmp_path / 'docs').mkdir()
+    (tmp_path / 'docs/M3_RELEASE.json').write_text(json.dumps(report))
+    export_path = tmp_path / 'evaluation.json'
+    export_path.write_text(json.dumps(export))
+    monkeypatch.setattr(analysis, 'ROOT', tmp_path)
+
+    def no_fit(*args, **kwargs):
+        pytest.fail('analysis must never train a pipeline')
+    monkeypatch.setattr(Pipeline, 'fit', no_fit)
+    return analysis, models, test, export_path, report
+
+
+def test_reproduce_without_private_export_and_optional_export_agrees(frozen_run, tmp_path):
+    import json
+
+    analysis, models, test, export, _ = frozen_run
+    fresh = analysis.run(models, test, tmp_path / 'fresh', [0, 2])
+    checked = analysis.run(models, test, tmp_path / 'checked', [0, 2], evaluation_path=export)
+    assert {k: v for k, v in fresh.items() if k != 'provenance'} == {
+        k: v for k, v in checked.items() if k != 'provenance'}
+    assert fresh['provenance']['evaluation_sha256'] is None
+    assert checked['provenance']['evaluation_sha256'] == analysis.sha256(export)
+    assert 'review_id' not in json.dumps(fresh) and 'fresh tasty' not in json.dumps(fresh)
+    cases = json.loads((tmp_path / 'fresh/cases.local.json').read_text())
+    assert [row['review_id'] for row in cases] == ['1', '3']
+    for filename in ('confusion_by_class.png', 'error_overlap.png', 'length_by_class.png'):
+        assert (tmp_path / 'fresh' / filename).is_file()
+
+
+@pytest.mark.parametrize('problem', ['test_hash', 'model_hash', 'metrics', 'export_input', 'export_row', 'export_prediction'])
+def test_run_rejects_noncanonical_inputs(frozen_run, tmp_path, problem):
+    import json
+
+    analysis, models, test, export, report = frozen_run
+    evaluation = None
+    if problem == 'test_hash':
+        test.write_text(test.read_text() + '\n')
+    elif problem == 'model_hash':
+        (models / 'bow_nb.joblib').write_bytes(b'not an approved artifact')
+    elif problem == 'metrics':
+        report['runs']['bow_nb']['metrics']['accuracy'] = 0.0
+        (tmp_path / 'docs/M3_RELEASE.json').write_text(json.dumps(report))
+    else:
+        saved = json.loads(export.read_text())
+        if problem == 'export_input':
+            saved['metadata']['input_sha256'] = {}
+        elif problem == 'export_row':
+            for name in MODELS:
+                saved['runs'][name]['predictions'][0]['text'] = 'different text'
+        else:
+            saved['runs']['bow_nb']['predictions'][0]['predicted_label'] = 'Positive'
+        export.write_text(json.dumps(saved))
+        evaluation = export
+    output = tmp_path / 'bad-output'
+    with pytest.raises(ValueError):
+        analysis.run(models, test, output, evaluation_path=evaluation)
+    assert not output.exists()

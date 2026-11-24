@@ -375,12 +375,12 @@
   "provenance": {
     "release": "v0.2.0-rc2",
     "test_sha256": "2c01b2781917986afaa34b6cf5502a0cdca642ea2fe7504ac1da985ca6c662f3",
-    "evaluation_sha256": "667db736bd0219979cd1da8342bc93d3414fa9cc7d14b409d2e369fe7518cbbe",
+    "evaluation_sha256": null,
     "model_sha256": {
       "tfidf_lr.joblib": "4ab3ca2fcd3d49a2fede443bcd5551c9bf105331c3b835a424305bc4aeb76653",
       "bow_nb.joblib": "df2853bebd3e592a086e8c367232db9f76450bd9c7d5c892928799b9eaa5b119",
       "tfidf_mlp.joblib": "be393007ec56a4e33af9d552151e82d0288a314c97c6911cd38794548f14178b"
     },
-    "method": "Frozen test predictions verified by inference; no training, selection or model writes."
+    "method": "Frozen model.predict on canonical cleaned Text; no training, selection or model writes."
   }
 }

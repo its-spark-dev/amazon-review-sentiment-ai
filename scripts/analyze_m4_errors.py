@@ -116,26 +116,31 @@ def plot_summary(summary, output):
     fig.savefig(output / 'length_by_class.png', dpi=160)
 
 
-def run(run_dir, test_path, output, case_indices=()):
-    """Verify canonical hashes, rows and frozen inference; export local diagnostics."""
+def run(run_dir, test_path, output, case_indices=(), *, evaluation_path=None):
+    """Predict with frozen artifacts; optionally cross-check a retained evaluation export.
+
+    Only the canonical test CSV and approved models are required. This uses
+    model.predict on already-cleaned Text to reproduce the reported classifier
+    metrics, rather than applying the app's input guard or refitting anything.
+    """
     output = Path(output)
     if output.exists() and (not output.is_dir() or any(output.iterdir())):
         raise ValueError('output must be new or empty')
     run_dir = Path(run_dir)
     report = json.loads((ROOT / 'docs/M3_RELEASE.json').read_text())
-    analysis = json.loads((run_dir / 'evaluation/analysis.json').read_text())
     if sha256(test_path) != report['input_sha256']['test']:
         raise ValueError('test file does not match canonical rc2')
-    if analysis['metadata']['input_sha256'] != report['input_sha256']:
-        raise ValueError('evaluation input provenance differs')
     test = load_split(test_path)
-    predictions = {n: analysis['runs'][n]['predictions'] for n in MODELS}
-    summary = summarize(predictions)
-    if summary['rows'] != report['test_size']:
+    if len(test) != report['test_size']:
         raise ValueError('test size differs')
-    for row, actual in zip(predictions[MODELS[0]], test.itertuples(index=False)):
-        if (row['review_id'], row['text'], row['true_label']) != (str(actual.Id), actual.Text, actual.Sentiment):
-            raise ValueError('evaluation rows differ from canonical test CSV')
+    exported = None
+    if evaluation_path is not None:
+        analysis = json.loads(Path(evaluation_path).read_text())
+        if analysis['metadata']['input_sha256'] != report['input_sha256']:
+            raise ValueError('evaluation input provenance differs')
+        exported = {n: analysis['runs'][n]['predictions'] for n in MODELS}
+        summarize(exported)  # validate export alignment before comparing with canonical rows
+    predictions = {}
     with threadpool_limits(limits=1):
         for name in MODELS:
             path = run_dir / f'{name}.joblib'
@@ -144,16 +149,29 @@ def run(run_dir, test_path, output, case_indices=()):
             # Trusted team artifact with the approved hash; predict only, never fit.
             model = joblib.load(path)
             actual = model.predict(test.Text).tolist()
-            if actual != [r['predicted_label'] for r in predictions[name]]:
-                raise ValueError(f'frozen predictions differ: {name}')
-            if summary['metrics'][name] != report['runs'][name]['metrics']:
-                raise ValueError(f'canonical metrics differ: {name}')
+            if len(actual) != len(test):
+                raise ValueError(f'prediction length differs: {name}')
+            rows = [dict(test_index=i, review_id=str(row.Id), text=row.Text,
+                         true_label=row.Sentiment, predicted_label=label)
+                    for i, (row, label) in enumerate(zip(test.itertuples(index=False), actual))]
+            if exported is not None:
+                saved = exported[name]
+                if len(saved) != len(rows) or any(
+                    any(row[key] != old[key] for key in row)
+                    for row, old in zip(rows, saved)
+                ):
+                    raise ValueError(f'evaluation rows or predictions differ: {name}')
+            predictions[name] = rows
+    summary = summarize(predictions)
+    for name in MODELS:
+        if summary['metrics'][name] != report['runs'][name]['metrics']:
+            raise ValueError(f'canonical metrics differ: {name}')
     if any(i < 0 or i >= len(test) for i in case_indices):
         raise ValueError('case index outside test rows')
     summary['provenance'] = {'release': report['release_tag'], 'test_sha256': sha256(test_path),
-        'evaluation_sha256': sha256(run_dir / 'evaluation/analysis.json'),
+        'evaluation_sha256': sha256(evaluation_path) if evaluation_path is not None else None,
         'model_sha256': {f'{n}.joblib': report['model_sha256'][f'{n}.joblib'] for n in MODELS},
-        'method': 'Frozen test predictions verified by inference; no training, selection or model writes.'}
+        'method': 'Frozen model.predict on canonical cleaned Text; no training, selection or model writes.'}
     output.mkdir(parents=True, exist_ok=True)
     (output / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
     cases = [dict(case=f'E{j + 1}', **predictions[MODELS[0]][i],
@@ -171,5 +189,7 @@ if __name__ == '__main__':
     parser.add_argument('--test', type=Path, default=ROOT / 'data/test_reviews.csv')
     parser.add_argument('--output-dir', type=Path, default=ROOT / 'outputs/m3/m4-error-analysis')
     parser.add_argument('--case-indices', type=int, nargs='*', default=[])
+    parser.add_argument('--evaluation', type=Path, default=None,
+                        help='Optional retained evaluation/analysis.json to cross-check; never required.')
     args = parser.parse_args()
-    run(args.run_dir, args.test, args.output_dir, args.case_indices)
+    run(args.run_dir, args.test, args.output_dir, args.case_indices, evaluation_path=args.evaluation)

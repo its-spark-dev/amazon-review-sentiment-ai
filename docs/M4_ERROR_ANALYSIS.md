@@ -1,6 +1,7 @@
 # M4: frozen rc2 error analysis
 
 This report supplements [M3 results](M3_RESULTS.md), using **v0.2.0-rc2** only.
+Revalidated November 24, 2026 against main `50587ac`.
 No model was trained, tuned, selected, replaced or serialized. The original test
 split, training procedure, and validation recommendation remain unchanged.
 This is retrospective analysis of an already-inspected test set, not a new
@@ -14,11 +15,19 @@ and 7,216 Positive. Labels come from ratings (1–2 / 3 / 4–5), not independen
 human annotation of textual sentiment. A text/label mismatch is therefore a
 possibility to investigate, not automatically an incorrectly labeled review.
 
-The script verifies the test CSV SHA-256, exported row text/IDs/labels, all three
-approved model hashes, every stored prediction against fresh **inference**, and
-all metrics against [M3_RELEASE.json](M3_RELEASE.json). It never calls fit or
-changes preprocessing. Training data are not loaded. The 27,765 predictions
-matched exactly. Aggregate counts and provenance are in
+The script verifies the test CSV SHA-256 and all three approved model hashes,
+then generates 27,765 predictions using the frozen pipelines and checks all
+metrics against [M3_RELEASE.json](M3_RELEASE.json). An optional retained evaluation
+export additionally checks row text/IDs/labels and every prediction. Both paths
+were revalidated and reproduced the original aggregates exactly; all 27,765
+exported predictions matched. It never calls fit or changes preprocessing.
+Training data are not loaded.
+
+This is **model.predict on canonical cleaned Text**, reproducing the reported
+classifier scores. It does not apply the Streamlit input guard or measure app
+coverage/abstention. The guard and probability wording added in PR #23 do not
+change these frozen classifiers or their reported results. Aggregate counts and
+provenance are in
 [summary.json](m4_error_analysis/summary.json); raw reviews and identifiers remain
 in ignored local outputs. All percentages below use the stated denominators.
 
@@ -132,17 +141,38 @@ optimizing the already-inspected shared test set.
 
 ## Reproduce and use for the M4 report
 
-Activate the Python 3.11 environment and install requirements-dev.txt. Local
-prerequisites are the **retained canonical rc2 run directory**, including its
-evaluation/analysis.json and the three joblib files, and the unchanged shared
-test CSV. The raw evaluation is deliberately not published in Git or release
-assets. This command uses those existing artifacts and never reruns training:
+Use Python 3.11 and install `requirements-dev.txt` as described in the README.
+Obtain `Reviews.csv` from [Kaggle](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews)
+and follow the [data guide](../data/README.md) to reproduce the seed-48 sample,
+cleaning and shared split. If the canonical `data/test_reviews.csv` already
+exists, preserve it. Its hash must match M3_RELEASE.json; do not resplit or
+substitute a new test set when validation fails.
+
+Only the canonical test CSV and approved release models are required. Download
+the hash-verified rc2 assets into an ignored directory, then run **prediction and
+analysis only**, without the training runner or any private evaluation export:
 
 ```bash
-python scripts/analyze_m4_errors.py --output-dir outputs/m3/m4-error-analysis \
+python -c "from inference import ensure_models_release; ensure_models_release('v0.2.0-rc2', 'outputs/m3/m4-models')"
+python scripts/analyze_m4_errors.py --run-dir outputs/m3/m4-models \
+  --test data/test_reviews.csv --output-dir outputs/m3/m4-error-analysis-new \
   --case-indices 40 178 204 202 648 16 85 164
 python -m pytest tests/test_m4_errors.py
 ```
+
+Choose a new or empty output directory. For contributors retaining the original
+run, `--run-dir outputs/m3/release-rc2` reuses the same approved artifacts. Adding
+`--evaluation outputs/m3/release-rc2/evaluation/analysis.json` cross-checks that
+local export's provenance, row alignment and predictions; an inconsistent export
+fails validation. This optional file contains real review text and is not
+published in Git or release assets. No-export and export-checked runs reproduce
+identical aggregates; `evaluation_sha256` is null when no export is supplied.
+
+The November 24 verification reproduced every published aggregate, all eight
+case mappings and pixel-identical versions of the three figures. Synthetic tests
+also cover both execution paths, artifact/test/metric mismatches and malformed
+exports. All 190 tests passed locally, including 14 focused error-analysis tests
+and 17 browser tests. CI tests require no Kaggle data or external services.
 
 The indices are zero-based **test-row positions**, not Amazon review IDs; their
 order defines E1–E8. Full texts, IDs and predictions for auditing are written to
