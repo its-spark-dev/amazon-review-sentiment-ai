@@ -77,7 +77,8 @@ until separately reviewed and merged.
   dataset/model/secret filenames. This is a limited check, not proof that every
   possible secret or personal detail has been ruled out.
 - **Metadata:** repository is public; description and NLP topics already exist.
-  Homepage is empty and GitHub reports no detected license. No settings were changed.
+  At the original audit, homepage was empty and GitHub detected no license.
+  The licensing follow-up adds MIT scope; repository settings remain unchanged.
 - **Attribution:** the team roster, Jacob's UI/data-script contributions, Sang's
   ML contributions and existing AI-assistance disclosure remain visible.
 
@@ -85,15 +86,16 @@ until separately reviewed and merged.
 
 ### A. Publication decisions and small serving fixes
 
-**1. Confirm code and artifact licensing with the team.** No LICENSE is present.
-Do not put an MIT/Apache/open-source badge on the repository without agreement
-from the appropriate contributors. Public visibility and a code reuse license
-are different; [GitHub's licensing guidance](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository)
-explains this distinction. Dataset terms are separate. The Kaggle page did not
-expose readable license text to this audit, and the SNAP source page does not
-settle all redistribution questions. Do not infer data/model licensing from a
-third-party repository. Acceptance: maintainers choose and record accurate reuse
-terms and any dataset/artifact restrictions; only then add a corresponding badge.
+**1. Code and artifact licensing (implemented in the licensing follow-up).**
+The original audit found no LICENSE and could not read Kaggle's license label.
+The team has since authorized MIT for its original code, documentation, figures
+and project-trained model artifacts. The [MIT License](../LICENSE) and
+[licensing scope](LICENSING.md) record this grant without changing existing model
+bytes or release assets. The upstream Kaggle metadata was checked on November 24
+and identifies the dataset as **CC0: Public Domain**; reviews and local dataset
+derivatives are explicitly excluded from the project's MIT grant. Third-party
+materials retain their own terms. The original license-gap finding is historical,
+not an unresolved requirement to obtain another public-sharing approval.
 
 **2. Zero-feature input guard (implemented in the serving follow-up).**
 At the original audit, [inference.py](../inference.py) checked blank/long/markup-only
@@ -199,8 +201,9 @@ this Actions runtime warning with the Python/model serving environment.
 `https://amazon-sentiment-ai.streamlit.app/`. Existing topics already cover the
 stack. A social preview can use the real demo image or a simple project graphic;
 do not imply university endorsement or invent an award. A citation file can be
-added after contributors confirm names and preferred attribution. License,
-social-preview, description/homepage and access settings were not modified here.
+added after contributors confirm names and preferred attribution. The licensing
+follow-up adds the license files; social-preview, description/homepage and access
+settings remain unchanged.
 
 ## Review and publication checks
 
@@ -225,6 +228,6 @@ matter more than decorative badges.
 
 Implementation evidence comes from the reviewed source and canonical local
 artifacts; the external guidance supplies review criteria, not evidence that
-this particular model is reliable. Except for the explicitly marked serving
-follow-up, the remaining action items are proposals rather than implemented
-improvements.
+this particular model is reliable. Except for the explicitly marked serving and
+licensing follow-ups, the remaining action items are proposals rather than
+implemented improvements.

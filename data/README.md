@@ -2,6 +2,13 @@
 
 Obtain the dataset from the [Amazon Fine Food Reviews page on Kaggle](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews), published by SNAP. Review the dataset description and usage terms on the source page before using it.
 
+Kaggle designates the dataset **CC0: Public Domain**, verified through its
+[official metadata API](https://www.kaggle.com/api/v1/datasets/view/snap/amazon-fine-food-reviews)
+on November 24, 2026. Reviews and local sampled/cleaned/split CSVs are excluded
+from this project's MIT grant. Dataset files remain local under repository policy.
+See [licensing and attribution](../docs/LICENSING.md) for the CC0 terms, research
+citation and distinction from MIT-licensed processing code and model artifacts.
+
 ## Local download (when needed)
 
 1. Open the source page and sign in to Kaggle if prompted.
