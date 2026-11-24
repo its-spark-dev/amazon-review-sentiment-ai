@@ -116,6 +116,9 @@ a no-model notice on a fresh clone. `SENTIMENT_MODEL_DIR` changes that directory
 `SENTIMENT_MODEL_PATH` restricts **local mode** to one artifact. Release mode
 lists only the five manifest-verified rc2 models. Only load trusted team artifacts.
 
+For GitHub Codespaces, see the [development-container guide](.devcontainer/README.md)
+for the protected forwarded-port launch and dataset-free rc2 demo command.
+
 ## Reproduce training
 
 Download `Reviews.csv` from [Kaggle](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews)

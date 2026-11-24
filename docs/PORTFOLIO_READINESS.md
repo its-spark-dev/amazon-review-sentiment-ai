@@ -131,12 +131,16 @@ place and explains that probabilities are uncalibrated estimates. Acceptance:
 synthetic switching/cache tests still pass; no score or model artifact changes;
 labels explain actual behavior. Calibration itself remains separate future work.
 
-**4. Review the Codespaces startup command before advertising that path.**
-[devcontainer.json](../.devcontainer/devcontainer.json) starts Streamlit with
-CORS/XSRF protections disabled. This is a development configuration, not evidence
-that the deployed app uses those flags. A separate dev-environment fix should
-test the normal protected configuration and document any demonstrated requirement
-before keeping exceptions. The public quickstart here uses normal local launch.
+**4. Codespaces protection settings (implemented in this maintenance change).**
+The original [devcontainer.json](../.devcontainer/devcontainer.json) disabled both
+CORS and XSRF protection; that was a development configuration, not evidence about
+the deployed app. The launcher now explicitly enables both and uses the current
+Codespace's forwarded hostname as `browser.serverAddress`. Installation uses only
+the existing pinned runtime requirements, and port 8501 opens in a browser tab.
+Regression tests exercise startup, allowed/rejected WebSocket origins and XSRF
+token enforcement on a real local server with simulated forwarding metadata.
+This does not establish end-to-end verification of GitHub's authenticated proxy
+or a hosted Codespace. See the [development-container guide](../.devcontainer/README.md).
 
 ### B. Evidence improvements for a stronger ML portfolio
 
@@ -206,10 +210,11 @@ improving CLI branch coverage are possible follow-ups. No badge should promise
 100% coverage.
 Avoid adding a package framework or experiment platform just for appearance.
 The [documentation PR's CI run](https://github.com/its-spark-dev/amazon-review-sentiment-ai/actions/runs/45306214735)
-also reports Node.js 20 deprecation warnings for the existing checkout/setup/
-upload actions, which the runner forces onto Node.js 24. Review supported action
-versions in a separate CI-maintenance change and rerun all jobs; do not confuse
-this Actions runtime warning with the Python/model serving environment.
+reported Node.js 20 deprecation warnings for the old checkout/setup/upload
+actions, which the runner forced onto Node.js 24. This maintenance change uses
+official Node.js 24 releases of checkout, setup-python, upload-artifact and cache
+and retains all six CI jobs. The Python/model serving environment is unchanged;
+Actions runtime versions are separate from runtime package versions.
 
 **11. Prepare repository metadata after maintainer review.** Suggested homepage:
 `https://amazon-sentiment-ai.streamlit.app/`. Existing topics already cover the
@@ -243,5 +248,7 @@ matter more than decorative badges.
 Implementation evidence comes from the reviewed source and canonical local
 artifacts; the external guidance supplies review criteria, not evidence that
 this particular model is reliable. Serving fixes, licensing and frozen error
-analysis are completed work. Generalization/calibration studies, environment/CI
-maintenance and repository metadata polish remain proposed improvements.
+analysis are completed work. This maintenance change addresses the Codespaces
+protection and Actions runtime findings. Generalization/calibration studies,
+complete environment capture and repository metadata polish remain proposed
+improvements; hosted Codespaces forwarding still needs an end-to-end check.
