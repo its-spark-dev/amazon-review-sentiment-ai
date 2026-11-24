@@ -65,6 +65,8 @@ a separate purpose and are not performance evidence.
 M3 extends this baseline with validation-selected Logistic Regression and MLP,
 loss curves and timed comparisons. See [M3 results](docs/M3_RESULTS.md) and
 [training instructions](docs/M3_TRAINING.md); M2 results above are preserved.
+See [M4 error analysis](docs/M4_ERROR_ANALYSIS.md) for frozen rc2 error overlap,
+class/length diagnostics, and manually inspected examples without retraining.
 
 ## Implementation
 
