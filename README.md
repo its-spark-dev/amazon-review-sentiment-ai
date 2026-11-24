@@ -81,6 +81,8 @@ layer of 32 ReLU units and uses validation-selected epoch 13. It does not model
 word order. See [full results](docs/M3_RESULTS.md) for training times, per-class
 metrics, confusion matrices and loss analysis. [Historical M2 results](docs/M2_BASELINE_RESULTS.md)
 use 36,995 features and remain a separate experiment.
+[Error analysis](docs/M4_ERROR_ANALYSIS.md) compares frozen rc2 error overlap,
+class/length diagnostics and eight inspected paraphrases without retraining.
 
 ## Run locally
 
@@ -178,7 +180,8 @@ pushes. Development dependencies include the runtime requirements.
 
 The [model card](docs/MODEL_CARD.md) describes the data, intended use and limits.
 The [portfolio review](docs/PORTFOLIO_READINESS.md) records evidence and follow-up
-work, including the separately reviewed [error-analysis PR #21](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/21).
+work. The [frozen rc2 error analysis](docs/M4_ERROR_ANALYSIS.md) provides
+retrospective diagnostics without changing the validation recommendation.
 
 ## Deployment
 
