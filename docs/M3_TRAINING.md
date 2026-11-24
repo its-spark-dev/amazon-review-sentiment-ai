@@ -2,10 +2,12 @@
 
 This workflow extends M2 with Logistic Regression and a feedforward MLP. It does
 not modify the app or the existing shared test CSV. Run from the repository root
-with Python 3.11 and the existing requirements installed:
+with the Python 3.11 environment active. Install development dependencies before
+running the pytest suite (they include the runtime dependencies):
 
 ```bash
-python -m unittest discover -s tests -v
+python -m pip install -r requirements-dev.txt
+python -m pytest -m "not integration and not e2e"
 python scripts/run_m3_comparison.py
 ```
 
@@ -13,6 +15,8 @@ Local prerequisites: `data/train_reviews.csv` and `data/test_reviews.csv` genera
 by the unchanged preparation scripts. Both require `Id`, `Text`, `Sentiment`;
 optional Score is checked for consistency. The runner rejects ID/Text overlap.
 No dataset is downloaded, resampled, cleaned, or repartitioned by this runner.
+Tests use synthetic data and temporary artifacts, so they do not need these CSVs.
+See the [README](../README.md#tests-and-ci) for integration and browser test commands.
 
 ## Selection protocol
 
@@ -80,13 +84,14 @@ are refused. Override with `--output-dir`; `--epochs`, `--max-features` and
   predictions/errors, input hashes, environment and full timing/selection protocol.
 - `evaluation/*_confusion.png`: one matrix for each of the six comparisons.
 - `*.joblib`: five fitted text-vectorizer/classifier pipelines for local handoff.
-  App changes and artifact selection/installation are outside this PR. The M2
+  The app can load approved release artifacts as described below. The M2
   `models/sentiment_pipeline.joblib` file is never overwritten.
 - `requirements-run.txt`: exact package versions; Python version is in metadata.
 
 Artifacts include review text and split identities. Keep the entire output folder
-local. Only load trusted joblib files. The final M3 team PDF, model/app integration,
-UI screenshots and cloud deployment are separate work.
+local. Only load trusted joblib files. The runner does not deploy the app or
+assemble the final M3 team PDF. Hosted staging validation and locally captured
+report screenshots are recorded in the [M3 results](M3_RESULTS.md#hosted-staging-status).
 
 ## Canonical report/demo version
 

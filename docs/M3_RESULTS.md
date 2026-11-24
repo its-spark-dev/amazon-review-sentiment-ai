@@ -1,7 +1,8 @@
 # M3 report and demonstration — canonical release v0.2.0-rc2
 
 Updated November 23, 2026. This replaces the November 15 M3 experimental results
-for report/demo parity. It is not confirmation of submission or cloud deployment.
+for report/demo parity. It is not confirmation of final PDF submission. Hosted
+staging validation is recorded at the end of this document.
 All current tables, timings, loss records and five model artifacts below belong
 to ONE deterministic re-execution. M2 results remain unchanged in their own doc.
 Machine-readable source: [M3_RELEASE.json](M3_RELEASE.json).
@@ -185,7 +186,23 @@ Both local and release inference now apply the SAME HTML/entity/whitespace/lower
 cleaner as data preparation, then reject inputs empty after cleaning. Models expect
 cleaned Text; Summary and rating are not features.
 
-M3 model integration exists. The team must still verify its actual hosted instance,
-include two real app screenshots, assemble the 4–6 page PDF, and confirm individual
-progress logs/submission. AI assisted implementation and these draft notes; final
+## Hosted staging status
+
+The [staging app](https://amazon-sentiment-ai-preview.streamlit.app/) was verified
+on November 23, 2026 after setting `MODELS_VERSION_TAG="v0.2.0-rc2"` and fully
+rebooting the Streamlit Community Cloud app. It serves the `staging` branch.
+All five models passed positive/negative synthetic checks with displayed
+probabilities matching the canonical local models. HTML/plain-text parity,
+markup-only rejection and empty-input rejection also passed: 14 hosted checks
+in total. These are app checks, not additional performance measurements.
+
+The cloud runtime is Python 3.14; this report's training environment is Python
+3.11 as recorded in the provenance JSON. The hosted checks do not establish
+equivalent training behavior across Python versions. Two screenshots of the live
+app were captured locally: TF-IDF LR predicting Positive and TF-IDF MLP predicting
+Negative. Screenshots and validation logs are not committed.
+
+The team must still include those screenshots in the 4–6 page PDF and confirm
+individual progress logs and submission. Production deployment from `main` is
+not confirmed. AI assisted implementation and these draft notes; final
 interpretation and report writing should be checked and owned by the team.
