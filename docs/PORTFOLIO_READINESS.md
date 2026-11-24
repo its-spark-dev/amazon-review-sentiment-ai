@@ -5,12 +5,17 @@ presentation and evidence audit, not a new experiment or a claim of defect-free
 software. The original [PR #22](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/22)
 changed documentation and a verified demo screenshot only and is now merged.
 
-**Serving follow-up, November 24:** this branch implements the zero-feature guard,
+**Serving follow-up, November 24:** [PR #23](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/23)
+merged at `9a29272` and implements the zero-feature guard,
 TF-IDF LR initial selection and explicit uncalibrated-probability wording from
 items 2–3 below. Synthetic regression tests cover rejection, recovery, unchanged
 supported predictions and preserved user choices. The original observations below
-remain dated audit evidence; these code changes do not claim a hosted deployment
-check or alter rc2 artifacts, preprocessing, selection, metrics or model weights.
+remain dated audit evidence. Main was then rebooted and
+[verified live](M3_RESULTS.md#hosted-main-status): initial selection/probability
+wording, 10 matching rc2 predictions, 15 rejected zero-feature inputs, five
+recoveries and two existing validation checks. Staging was not reverified.
+The serving changes do not alter rc2 artifacts, preprocessing, model-selection
+protocol, metrics or model weights.
 
 ## Conclusion
 
@@ -198,14 +203,15 @@ social-preview, description/homepage and access settings were not modified here.
 
 ## Review and publication checks
 
-Before sharing the portfolio link, review the serving follow-up and PR #21
-separately, keep model/metric claims tied to rc2, and confirm the demo is reachable
+Before sharing the portfolio link, review PR #21 separately, keep model/metric
+claims tied to rc2, and confirm the demo is reachable
 at the time of sharing. Keep M3 PDF updating and the M4 report/presentation as
 course tasks; a polished README cannot stand in for their submission. For any
 future serving fix, repeat model selection/prediction and error-path checks.
 
-The screenshot added here is the team's genuine main-app capture from the
-November 23 deployment verification. No third-party photos, logos, reviewer
+The README screenshots are genuine main-app captures from the
+November 24 deployment verification, replacing the original November 23 image.
+No third-party photos, logos, reviewer
 identifiers or invented outputs were added. Image access and readable captions
 matter more than decorative badges.
 
