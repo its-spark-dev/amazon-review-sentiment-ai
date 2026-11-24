@@ -191,7 +191,8 @@ class AppReleaseWiringTests(unittest.TestCase):
         with mock.patch("inference.ensure_models_release", side_effect=OSError("boom")) as ensure:
             at = self.run_app(env)
         ensure.assert_called_once_with(REPORT_MODEL_RELEASE, Path(self.model_dir))
-        self.assertEqual([e.value for e in at.error], ["Failed to prepare staging models"])
+        self.assertEqual([e.value for e in at.error],
+                         ["Could not prepare the release models. Please try again later."])
         self.assertEqual(len(at.title), 0)  # st.stop() before the rest of the page
 
     def test_success_renders_page(self):

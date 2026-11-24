@@ -1,6 +1,6 @@
 # Portfolio readiness review
 
-Status updated **November 24, 2026 (EST)** against main `5545a8b`. The original
+Status updated **November 24, 2026 (EST)** against main `0b85192`. The original
 audit was November 23 against `2445b30`; dated observations below distinguish
 that history from completed follow-ups. This is an evidence audit, not a new
 experiment or a claim of defect-free software. The original [PR #22](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/22)
@@ -17,6 +17,16 @@ wording, 10 matching rc2 predictions, 15 rejected zero-feature inputs, five
 recoveries and two existing validation checks. Staging was not reverified.
 The serving changes do not alter rc2 artifacts, preprocessing, model-selection
 protocol, metrics or model weights.
+
+**Development/CI follow-up, November 24:**
+[PR #27](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/27) merged
+at `0b85192`. Codespaces now enables CORS/XSRF protection with the forwarded
+hostname, and CI uses Node.js 24 actions. All six
+[main CI jobs](https://github.com/its-spark-dev/amazon-review-sentiment-ai/actions/runs/45348633211)
+passed, totaling **195 tests**, with zero check annotations and no Node.js 20
+deprecation warnings. The five added tests exercise the launcher and a real local
+server with simulated forwarding metadata; hosted Codespaces proxy verification
+remains pending. Model files, hashes and runtime dependency versions are unchanged.
 
 ## Conclusion
 
@@ -53,12 +63,13 @@ MIT. See [licensing scope](LICENSING.md).
 
 ## Repository and ML evidence checked
 
-- **Tests:** 190 unit/integration/browser tests passed during the November 24
-  PR #21 revalidation, including 14 focused error-analysis and 17 browser tests.
-  Ruff and pip check passed. Main `5545a8b` passed all six CI jobs. The earlier
-  November 23 count of 158 belongs to the original audit, before serving and
-  error-analysis regression tests were added.
-- **Coverage:** the same 190-test run reported 89% statement coverage over 824
+- **Tests:** main `0b85192` passed all six CI jobs after PR #27: **195 tests**
+  (136 unit, 42 integration and 17 browser), including five development-container
+  tests and the existing 14 focused error-analysis tests. Lint, dependency and
+  tracked-file hygiene checks passed. The earlier 190-test PR #21 revalidation
+  and main `5545a8b` CI remain historical evidence; the November 23 count of 158
+  predates the serving and error-analysis regression tests.
+- **Historical coverage:** the PR #21 190-test run reported 89% statement coverage over 824
   measured statements (94 missed). app.py was 99%, inference.py 98%, the error
   analysis CLI 91%, ml_baseline.py 100% and scripts/split_reviews.py 46%. Scripts
   not imported in the measured process can be absent, so this is not coverage of
@@ -79,7 +90,8 @@ MIT. See [licensing scope](LICENSING.md).
   CI, Python, model-release, demo and MIT badges. Its November 24 screenshots
   show the current probability explanation and input guard, not mockups. The
   [versioned rc2 release description](releases/v0.2.0-rc2.md) records main,
-  merged error analysis, 190-test validation and MIT/data scope.
+  merged error analysis, latest 195-test validation and MIT/data scope, while
+  retaining the earlier 190-test verification as history.
 - **Software tests vs scientific evidence:** synthetic tests check contracts and
   regressions; the real-data report provides the measured model scores. Neither
   is a substitute for the other. No real-data retraining was performed here.
@@ -131,7 +143,7 @@ place and explains that probabilities are uncalibrated estimates. Acceptance:
 synthetic switching/cache tests still pass; no score or model artifact changes;
 labels explain actual behavior. Calibration itself remains separate future work.
 
-**4. Codespaces protection settings (implemented in this maintenance change).**
+**4. Codespaces protection settings (implemented and merged in PR #27).**
 The original [devcontainer.json](../.devcontainer/devcontainer.json) disabled both
 CORS and XSRF protection; that was a development configuration, not evidence about
 the deployed app. The launcher now explicitly enables both and uses the current
@@ -211,9 +223,10 @@ improving CLI branch coverage are possible follow-ups. No badge should promise
 Avoid adding a package framework or experiment platform just for appearance.
 The [documentation PR's CI run](https://github.com/its-spark-dev/amazon-review-sentiment-ai/actions/runs/45306214735)
 reported Node.js 20 deprecation warnings for the old checkout/setup/upload
-actions, which the runner forced onto Node.js 24. This maintenance change uses
+actions, which the runner forced onto Node.js 24. Merged PR #27 uses
 official Node.js 24 releases of checkout, setup-python, upload-artifact and cache
-and retains all six CI jobs. The Python/model serving environment is unchanged;
+and retains all six CI jobs; its main run has no Node.js 20 deprecation warnings.
+The Python/model serving environment is unchanged;
 Actions runtime versions are separate from runtime package versions.
 
 **11. Prepare repository metadata after maintainer review.** Suggested homepage:
@@ -248,7 +261,7 @@ matter more than decorative badges.
 Implementation evidence comes from the reviewed source and canonical local
 artifacts; the external guidance supplies review criteria, not evidence that
 this particular model is reliable. Serving fixes, licensing and frozen error
-analysis are completed work. This maintenance change addresses the Codespaces
+analysis are completed work. Merged PR #27 addresses the Codespaces
 protection and Actions runtime findings. Generalization/calibration studies,
 complete environment capture and repository metadata polish remain proposed
 improvements; hosted Codespaces forwarding still needs an end-to-end check.
