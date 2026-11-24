@@ -57,7 +57,7 @@ def test_sample_button_then_analyze(app: Page, sample):
     app.get_by_role("button", name=sample, exact=True).click()
     expect(app.get_by_role("textbox", name="Review text")).not_to_have_value("")
     analyze(app)
-    expect(app.get_by_test_id("stMetric")).to_contain_text("Confidence")
+    expect(app.get_by_test_id("stMetric")).to_contain_text("Predicted-class probability")
     expect(result_heading(app)).to_have_count(1)
     assert_no_app_exception(app)
 
@@ -67,7 +67,8 @@ def test_typed_review_shows_label_chart_and_breakdown(app: Page, label):
     enter_review(app, synthetic.PROBES[label])
     analyze(app)
     expect(result_heading(app, label)).to_be_visible()
-    expect(app.get_by_test_id("stMetricValue")).to_have_text(re.compile(r"^\s*\d+%\s*$"))  # 1.40 pads the value
+    expect(app.get_by_test_id("stMetricValue")).to_have_text(re.compile(r"^\s*\d+\.\d%\s*$"))
+    expect(app.get_by_text(re.compile("Probabilities are uncalibrated model estimates"))).to_be_visible()
     expect(app.get_by_test_id("stVegaLiteChart")).to_be_visible()
     expect(app.get_by_text(re.compile(r"Negative: [\d.]+% · Neutral: [\d.]+% · Positive: [\d.]+%"))).to_be_visible()
     assert_no_app_exception(app)
@@ -94,6 +95,24 @@ def test_reanalyze_replaces_previous_result(app: Page):
     analyze(app)
     expect(result_heading(app, "Negative")).to_be_visible()
     expect(result_heading(app, "Positive")).to_have_count(0)
+
+
+@pytest.mark.parametrize("text", ["🍪🍪🍪", "이 음식은 맛있어요", "quuxzzblorb snarglexyz"])
+def test_unrecognized_input_withholds_prediction_and_can_recover(app: Page, text):
+    enter_review(app, synthetic.PROBES["Positive"])
+    analyze(app)
+    expect(result_heading(app, "Positive")).to_be_visible()
+    enter_review(app, text)
+    analyze(app)
+    expect(app.get_by_text(re.compile("No words in this review are recognized"))).to_be_visible()
+    expect(result_heading(app)).to_have_count(0)
+    expect(app.get_by_test_id("stMetric")).to_have_count(0)
+    expect(app.get_by_test_id("stVegaLiteChart")).to_have_count(0)
+    enter_review(app, synthetic.PROBES["Negative"])
+    analyze(app)
+    expect(result_heading(app, "Negative")).to_be_visible()
+    expect(app.get_by_text(re.compile("No words in this review are recognized"))).to_have_count(0)
+    assert_no_app_exception(app)
 
 
 # --- Model selection (several .joblib files in the models directory) ---------------------------
@@ -151,4 +170,22 @@ def test_corrupt_model_shows_error_and_user_can_switch_away(page: Page, app_url_
     analyze(app)
     expect(result_heading(app, "Negative")).to_be_visible()
     expect(app.get_by_role("alert").filter(has_text="Could not load the model")).to_have_count(0)
+    assert_no_app_exception(app)
+
+
+def test_recommended_model_defaults_and_user_choice_persists(page: Page, app_url_recommended_model):
+    app = open_multi(page, app_url_recommended_model)
+    sidebar = app.get_by_test_id("stSidebar")
+    expect(sidebar.get_by_text("tfidf_lr.joblib")).to_be_visible()
+    expect(app.get_by_role("combobox", name="Model")).to_have_value("tfidf_lr")
+    enter_review(app, synthetic.PROBES["Positive"])
+    analyze(app)
+    expect(result_heading(app, "Positive")).to_be_visible()
+    choose_model(app, "bow_lr")
+    analyze(app)
+    expect(result_heading(app, "Negative")).to_be_visible()
+    app.get_by_role("button", name="Positive", exact=True).click()  # rerun outside the form
+    expect(app.get_by_role("combobox", name="Model")).to_have_value("bow_lr")
+    analyze(app)
+    expect(sidebar.get_by_text("bow_lr.joblib")).to_be_visible()
     assert_no_app_exception(app)

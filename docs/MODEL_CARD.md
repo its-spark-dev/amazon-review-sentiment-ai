@@ -9,8 +9,9 @@ reviews. It is not a transformer, language model, multilingual classifier, or
 validated commercial review-analysis service.
 
 The main [Streamlit demo](https://amazon-sentiment-ai.streamlit.app/) lets visitors
-choose a model. The validation-recommended pipeline is **tfidf_lr**; the current
-release menu starts with **bow_lr**. A demonstration input is not performance evidence.
+choose a model. The validation-recommended pipeline is **tfidf_lr**, which the
+app selects initially when available. Valid user choices persist across reruns;
+single-file local overrides remain supported. A demonstration input is not performance evidence.
 
 ## Data and target
 
@@ -94,11 +95,15 @@ models, so the comparison is not an isolated causal experiment on architecture.
 No fairness, modern out-of-domain, language-specific or adversarial evaluation
 has been performed.
 
-The app displays predict_proba output under “Confidence”; no probability
-calibration has been validated. Unsupported inputs with **zero recognized
-features**, such as emoji-only text, currently still receive a prediction. Do
-not interpret such output as language understanding, uncertainty detection,
-or reliable sentiment evidence. A future input guard is proposed separately.
+The app labels predict_proba output as “Predicted-class probability”, with one
+decimal place and an explicit uncalibrated-estimate explanation. No probability
+calibration has been validated; a high value can still accompany a wrong label.
+After shared text cleanup, BoW/TF-IDF pipelines with **zero recognized features**
+produce an insufficient-vocabulary message instead of a label or probabilities.
+This is not language or out-of-domain detection: one recognized token is enough
+to pass the guard, and partially recognized inputs can still be unreliable.
+This serving check changes neither fitted model parameters nor probability values
+for supported inputs.
 
 ## Artifact and runtime contract
 
