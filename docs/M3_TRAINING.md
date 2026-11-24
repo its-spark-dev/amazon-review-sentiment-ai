@@ -107,7 +107,16 @@ provenance/manifest. See the README for the hash-verified release demo command.
 The [main app](https://amazon-sentiment-ai.streamlit.app/) serves this release
 from `main` on Python 3.11.18; the separate
 [staging app](https://amazon-sentiment-ai-preview.streamlit.app/) serves it from
-`staging` on Python 3.14. Both were rebooted and verified on November 23, 2026
-(EST), with 14 synthetic hosted checks per app. Deployment verification does not
-rerun training or replace the canonical evaluation. Configure the model tag in
-each app's Streamlit secrets settings; a Git merge does not transfer that setting.
+`staging` on Python 3.14. The latest recorded
+[main serving verification](M3_RESULTS.md#hosted-main-status) is November 24,
+2026 (EST), after PR #23 and a full reboot: 10 matching rc2 predictions,
+15 zero-feature rejections, five recoveries and empty/markup-only checks.
+Staging's last recorded verification remains November 23, with 14 hosted checks.
+
+Separately, [PR #27](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/27)
+merged at `0b85192`; all six
+[main CI jobs](https://github.com/its-spark-dev/amazon-review-sentiment-ai/actions/runs/45348633211)
+passed with 195 synthetic tests. This verifies software contracts, not new model
+performance or another hosted deployment. Deployment verification does not rerun
+training or replace the canonical evaluation. Configure the model tag in each
+app's Streamlit secrets settings; a Git merge does not transfer that setting.

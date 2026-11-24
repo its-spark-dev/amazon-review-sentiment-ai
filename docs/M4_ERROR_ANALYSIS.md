@@ -174,6 +174,13 @@ also cover both execution paths, artifact/test/metric mismatches and malformed
 exports. All 190 tests passed locally, including 14 focused error-analysis tests
 and 17 browser tests. CI tests require no Kaggle data or external services.
 
+Subsequently, [PR #27](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/27)
+merged at `0b85192` and all six
+[main CI jobs](https://github.com/its-spark-dev/amazon-review-sentiment-ai/actions/runs/45348633211)
+passed with **195 tests** (136 unit, 42 integration and 17 browser). The five added
+tests cover development-container protection; they do not change the frozen
+analysis, figures, models or earlier 190-test reproduction record above.
+
 The indices are zero-based **test-row positions**, not Amazon review IDs; their
 order defines E1–E8. Full texts, IDs and predictions for auditing are written to
 cases.local.json under the ignored output directory. It must be new or empty.

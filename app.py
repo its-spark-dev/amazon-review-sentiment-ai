@@ -77,7 +77,7 @@ def main() -> None:
         try:
             paths = ensure_models_release(release_tag, model_dir)
         except (OSError, ValueError):
-            st.error("Failed to prepare staging models")
+            st.error("Could not prepare the release models. Please try again later.")
             st.stop()
 
     else:

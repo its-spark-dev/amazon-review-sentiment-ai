@@ -167,6 +167,13 @@ synthetic inputs and temporary models, with no Kaggle data or external inference
 service. The [workflow](.github/workflows/ci.yml) runs on pull requests and main
 pushes. Development dependencies include the runtime requirements.
 
+**Latest main validation:** [PR #27](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/27)
+merged at `0b85192` on November 24, 2026. All six
+[CI jobs](https://github.com/its-spark-dev/amazon-review-sentiment-ai/actions/runs/45348633211)
+passed: **195 tests** (136 unit, 42 integration and 17 browser), with no Node.js 20
+deprecation warnings. This includes five development-container protection tests;
+it does not verify a hosted Codespace or measure model performance.
+
 ## Evaluation limits
 
 - Ratings supply the labels; they are not independent human sentiment annotations.
