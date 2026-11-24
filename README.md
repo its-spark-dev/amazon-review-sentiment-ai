@@ -6,7 +6,9 @@
 
 Three-class sentiment analysis of Amazon Fine Food Reviews, with reproducible
 classical ML baselines, evaluation tools, and a Streamlit inference UI with a
-verified hosted staging demo.
+verified main deployment and a separate staging demo.
+
+**Live app:** [amazon-sentiment-ai.streamlit.app](https://amazon-sentiment-ai.streamlit.app/)
 
 ## Project Overview
 
@@ -26,7 +28,7 @@ As of **November 23, 2026**:
 | --- | --- | --- |
 | M1 — Project Charter & Scope | Nov 10, 2026 | Submitted |
 | M2 — Initial Solution | Nov 15, 2026 | Technical implementation complete; submission not confirmed |
-| M3 — Refined Solution & App Prototype | Nov 22, 2026 | ML comparison and hosted staging prototype verified; final PDF/submission unconfirmed |
+| M3 — Refined Solution & App Prototype | Nov 22, 2026 | ML comparison and main/staging apps verified; final PDF/submission unconfirmed |
 | M4 — Final Report | Nov 29, 2026 | Planned |
 
 Milestone deadlines are **11:59 PM EST**. M1 was extended from November 8 to
@@ -103,7 +105,8 @@ to `v0.1.0-rc1`; the app now rejects that historical demo version.
 The [M3 report](docs/M3_RESULTS.md) and [provenance](docs/M3_RELEASE.json) identify
 the exact hashes, metrics, loss history and timings. Training and test files stay
 local. A fresh clone can run the release demo without the dataset; training needs it.
-The [staging demo](https://amazon-sentiment-ai-preview.streamlit.app/) was verified
+The [main app](https://amazon-sentiment-ai.streamlit.app/) and
+[staging demo](https://amazon-sentiment-ai-preview.streamlit.app/) were verified
 on November 23, 2026 with this release. Official M3 submission is not confirmed.
 
 ## Project Structure
@@ -205,27 +208,35 @@ files from trusted team sources: loading them can execute code.
 
 - **M3 — In progress:** Logistic Regression, MLP, training-internal validation,
   loss curves and model comparisons are implemented. The hosted multi-model
-  staging app is verified and two screenshots have been captured locally.
+  main and staging apps are verified and two report screenshots have been captured locally.
   Adding them to the final PDF and confirming submission remain team tasks.
-- **M4 — Planned:** Final report and presentation slides, Streamlit Community
-  Cloud production deployment, and final verification. The team timeline schedules an
+- **M4 — Planned:** Final report and presentation slides, deployment maintenance,
+  and final project verification. The team timeline schedules an
   **8-minute presentation + 2-minute Q&A on December 3, 2026**.
 
-The [staging app](https://amazon-sentiment-ai-preview.streamlit.app/) runs on
+Both apps run on
 [Streamlit Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app)
-from `staging`, using `app.py`, the root `requirements.txt`, and
-`MODELS_VERSION_TAG="v0.2.0-rc2"`. After a full reboot on November 23, 2026,
-all five models passed positive/negative prediction checks; HTML preprocessing
-parity and empty-input guards also passed (14 hosted checks in total).
-These synthetic checks validate app behavior, not held-out model performance.
-Two report screenshots were captured locally and are not committed.
+with `app.py`, the root `requirements.txt`, and `MODELS_VERSION_TAG="v0.2.0-rc2"`.
 
-The current cloud runtime is Python 3.14; training and the documented local/CI
-environment use Python 3.11. Hosted predictions matched the rc2 model outputs
-for the checked examples. A separate production deployment from `main` has not
-been verified. Branch merges do not copy Streamlit settings: configure the same
-model tag and reboot any production instance before verifying it. Store settings
-in the platform's secrets editor; never commit `.env` or `.streamlit/secrets.toml`.
+| App | Branch | Cloud Python | Verification |
+| --- | --- | --- | --- |
+| [Main](https://amazon-sentiment-ai.streamlit.app/) | `main` | 3.11.18 | Rebooted; 14 hosted checks passed on Nov 23, 2026 (EST) |
+| [Staging](https://amazon-sentiment-ai-preview.streamlit.app/) | `staging` | 3.14 | Rebooted; 14 hosted checks passed on Nov 23, 2026 (EST) |
+
+Each app passed positive/negative prediction checks for all five models, HTML
+preprocessing parity, and markup-only/empty-input rejection. Displayed
+probabilities matched the canonical local rc2 models. These synthetic checks
+validate app behavior, not additional held-out performance measurements.
+Main was deployed after [PR #19](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/19)
+passed all six CI checks and merged at `216720c`. Staging remains separate.
+Report screenshots and the main verification screenshot/log were captured locally
+and are not committed. Training and the documented local/CI environment use
+Python 3.11; the staging checks do not establish equivalent training across versions.
+
+Branch merges do not copy Streamlit settings. When changing model releases,
+configure the model tag separately for each app, reboot, and verify predictions.
+Store settings in the platform's secrets editor; never commit `.env` or
+`.streamlit/secrets.toml`.
 
 ## Team and Acknowledgments
 
