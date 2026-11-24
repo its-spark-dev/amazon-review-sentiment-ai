@@ -6,6 +6,7 @@
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](#run-locally)
 [![Models v0.2.0-rc2](https://img.shields.io/badge/models-v0.2.0--rc2-5264AE)](https://github.com/its-spark-dev/amazon-review-sentiment-ai/releases/tag/v0.2.0-rc2)
 [![Open Streamlit demo](https://img.shields.io/badge/Streamlit-live_demo-FF4B4B?logo=streamlit&logoColor=white)](https://amazon-sentiment-ai.streamlit.app/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 [**Try the app**](https://amazon-sentiment-ai.streamlit.app/) ·
 [Results and protocol](docs/M3_RESULTS.md) ·
@@ -247,6 +248,18 @@ for implementation and draft technical notes is disclosed in [M2 results](docs/M
 Final interpretation and writing are reviewed and owned by the team.
 
 See [contribution guidelines](CONTRIBUTING.md) for focused branches, validation and
-artifact handling. Data source: [SNAP Amazon Fine Foods](https://snap.stanford.edu/data/web-FineFoods.html),
-distributed on Kaggle. **No code license is declared yet**; public visibility does
-not by itself declare reuse terms. Dataset terms are separate from code licensing.
+artifact handling.
+
+## License
+
+The contributors' original **code, documentation, figures, screenshots and
+project-trained model artifacts** are covered by the [MIT License](LICENSE),
+including the five approved rc2 pipelines. Preserve the MIT notice when
+redistributing covered work. Existing model bytes and hashes are unchanged.
+
+Amazon Fine Food Reviews is separate: [Kaggle](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews)
+designates it **CC0: Public Domain**. Reviews and local dataset derivatives are
+excluded from the project's MIT grant; datasets remain untracked. Third-party
+dependencies and materials retain their own terms. See [licensing scope and
+dataset attribution](docs/LICENSING.md) for details and the
+[SNAP source](https://snap.stanford.edu/data/web-FineFoods.html) for the research citation.

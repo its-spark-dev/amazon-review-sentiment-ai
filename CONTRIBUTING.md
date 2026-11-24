@@ -42,6 +42,15 @@ for running the release demo without a dataset.
 - Fit vocabulary/IDF and choose settings on training/inner validation only. The
   shared test has already been inspected; do not tune against its score.
 
-No code license is declared yet. Contribution instructions do not assign a
-license or override team ownership or the dataset's separate terms. Raise reuse
-and licensing questions with the maintainers before assuming permission.
+## Licensing contributions
+
+Contributions submitted for inclusion are offered under the [MIT License](LICENSE),
+unless explicitly agreed otherwise before inclusion. Contributors retain their
+copyright and must have the right to license their contribution. This covers
+original code, documentation, figures and project-trained model artifacts.
+
+Identify any incorporated third-party material and preserve its applicable
+license/attribution notices. Do not assign MIT to Amazon reviews, local dataset
+derivatives or third-party dependencies. Kaggle designates the dataset as CC0;
+our policy of keeping data out of Git remains unchanged. See the
+[licensing scope](docs/LICENSING.md) for data, model and third-party distinctions.

@@ -32,8 +32,10 @@ user identity or product identity. The [data guide](../data/README.md) records
 HTML/entity/whitespace/lowercase normalization, duplicate handling and split rules.
 The same cleaner is used by inference. The dataset and trained binaries are not
 committed; models are distributed separately as team-produced release assets.
-No code license is declared. Dataset usage terms require separate verification;
-this card does not grant redistribution rights.
+Kaggle designates the dataset as **CC0: Public Domain** (metadata verified
+November 24, 2026). Reviews and local dataset derivatives are excluded from
+the project's MIT grant. See [licensing scope](LICENSING.md) for upstream terms,
+research attribution and third-party rights.
 
 ## Training and selection
 
@@ -120,6 +122,19 @@ Hosted checks establish only the observed serving behavior on the recorded date,
 not identical training across Python versions. Follow [training instructions](M3_TRAINING.md)
 for the current package versions and reproduction outputs. Dataset preparation is
 required for training; the release demo and synthetic tests need no dataset.
+
+## License and reuse
+
+The contributors' original code, documentation, figures and project-trained
+model artifacts are licensed under [MIT](../LICENSE). This explicitly includes
+the five rc2 pipelines identified by the manifest above, to the extent the team
+holds rights in them. Include the MIT copyright/permission notice when
+redistributing covered artifacts. Licensing is declared in the repository;
+existing release assets, serialized files, hashes and predictions are unchanged.
+
+The training reviews remain separate under Kaggle's CC0 designation; dependency
+implementations retain their own licenses. The MIT grant does not claim rights
+over those materials. See [LICENSING.md](LICENSING.md) for the full scope.
 
 ## Ownership and status
 
