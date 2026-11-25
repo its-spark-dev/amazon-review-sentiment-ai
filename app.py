@@ -1,4 +1,11 @@
-"""Streamlit app: enter an Amazon food review and get a three-class sentiment."""
+"""Streamlit app: enter an Amazon food review and get a three-class sentiment.
+
+Results are prepared ahead of the click. The form watcher (``form_watcher.py``)
+reports the form's pending text and model choice; the app predicts them in the
+background (``prefetch.py``) and renders the outcome into a hidden "back" result
+slot so the browser lays it out and draws the chart. Analyze flips that slot into
+view on the client, and the submit run renders the same elements into it.
+"""
 
 from concurrent.futures import wait
 import logging

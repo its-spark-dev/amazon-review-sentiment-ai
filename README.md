@@ -51,6 +51,10 @@ check, not language or out-of-domain detection.*
   hashes, loss history and measured environment versions in [provenance](docs/M3_RELEASE.json).
 - **Release-backed inference:** five hash-verified pipelines, shared preparation/
   inference cleaning, input validation, model switching and cache invalidation.
+- **Instant results:** about 1 s after typing stops, or as soon as another model is
+  picked, the app predicts in the background and renders the result hidden in the
+  page, chart included. **Analyze sentiment** then reveals it without waiting for
+  the server; a click before anything is ready is computed as usual.
 - **Automated checks:** synthetic unit, integration and browser tests; CI also
   checks lint, dependencies and tracked-file hygiene. Test success is not model-quality evidence.
 
@@ -101,7 +105,10 @@ MODELS_VERSION_TAG=v0.2.0-rc2 python -m streamlit run app.py
 
 Open the printed local URL, normally `http://localhost:8501`. Enter an English
 food review, choose a model, and click **Analyze sentiment**. Labels follow
-ratings: **1–2 → Negative, 3 → Neutral, 4–5 → Positive**.
+ratings: **1–2 → Negative, 3 → Neutral, 4–5 → Positive**. To make the click
+instant, the review text and model choice reach the app server about 1 s after
+you stop typing (or when you switch models), before you click. The prediction is
+kept in server memory for your session only and stays hidden until you click.
 
 On Windows, create the environment with `py -3.11 -m venv .venv`, activate with
 `.venv\Scripts\Activate.ps1`, install requirements, and run:

@@ -12,6 +12,10 @@ The main [Streamlit demo](https://amazon-sentiment-ai.streamlit.app/) lets visit
 choose a model. The validation-recommended pipeline is **tfidf_lr**, which the
 app selects initially when available. Valid user choices persist across reruns;
 single-file local overrides remain supported. A demonstration input is not performance evidence.
+To show results instantly, the app sends the pending review text to its server
+about 1 s after typing stops and predicts it before **Analyze sentiment** is
+clicked. That prediction stays hidden until the click and is kept in memory for
+the session only.
 
 ## Data and target
 

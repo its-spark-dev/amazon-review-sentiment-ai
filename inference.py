@@ -189,7 +189,9 @@ def ensure_models_release(
 
     Files whose SHA-256 already matches the manifest are reused; anything missing
     or different is downloaded from the release, verified and atomically swapped
-    in. Failures are logged with the filename, then raised as ``ValueError`` (bad
+    in. A file already verified by this process is not re-hashed while its
+    modification time, change time, size and inode are unchanged; any change to
+    those triggers a full re-check. Failures are logged with the filename, then raised as ``ValueError`` (bad
     tag, manifest or hash) or ``OSError`` (filesystem or network).
     """
     try:
