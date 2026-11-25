@@ -115,7 +115,7 @@ def test_unrecognized_input_withholds_prediction_and_can_recover(app: Page, text
     assert_no_app_exception(app)
 
 
-# --- Background prefetch and instant preview ----------------------------------------------------
+# --- Background prefetch and double-buffered result----------------------------------------------
 
 READY = "window.__reviewPrefetch && window.__reviewPrefetch.data && window.__reviewPrefetch.data.ready"
 
@@ -128,15 +128,26 @@ def wait_for_prefetch(page: Page, text: str, model: str | None = None):
     )
 
 
-def watch_instant_preview(page: Page):
-    """Record whether the instant preview ever became visible from now on."""
-    page.evaluate("""() => {
-        window.__instantSeen = false;
-        new MutationObserver(() => {
-            const box = document.querySelector('[data-testid=instantResult]');
-            if (box && !box.hidden) window.__instantSeen = true;
-        }).observe(document.body, {subtree: true, childList: true, attributes: true});
-    }""")
+CHART = "[data-testid=stVegaLiteChart] canvas, [data-testid=stVegaLiteChart] svg"
+
+
+def watch_flip(page: Page):
+    """Remember the chart drawn in the hidden back slot, and whether a click flips it into view."""
+    return page.evaluate(f"""() => {{
+        window.__flipped = false;
+        new MutationObserver(() => {{
+            if (document.getElementById('rp-flip')) window.__flipped = true;
+        }}).observe(document.head, {{childList: true}});
+        const back = document.querySelector('.st-key-' + window.__reviewPrefetch.data.back);
+        window.__buffered = back && back.querySelector({CHART!r});
+        return !!window.__buffered && !window.__buffered.checkVisibility({{visibilityProperty: true}});
+    }}""")
+
+
+def buffered_chart_is_shown(page: Page) -> bool:
+    """The chart on screen is the very element the browser drew while it was hidden."""
+    return page.evaluate("""() => !!window.__buffered && document.contains(window.__buffered)
+        && window.__buffered.checkVisibility({visibilityProperty: true})""")
 
 
 def type_review(page: Page, text: str):
@@ -146,32 +157,35 @@ def type_review(page: Page, text: str):
     return box
 
 
-def test_pause_prefetches_silently_and_click_shows_result_instantly(app: Page):
+def test_pause_prefetches_and_renders_hidden_then_click_flips_it_into_view(app: Page):
     text = synthetic.PROBES["Positive"]
     type_review(app, text)
     wait_for_prefetch(app, text)
-    # The prediction is ready in the page but nothing is shown until Analyze.
-    expect(app.get_by_test_id("instantResult")).to_be_hidden()
+    # The result is already drawn in the page, chart included, but hidden until Analyze.
+    app.wait_for_function(
+        f"document.querySelector('.st-key-' + window.__reviewPrefetch.data.back + ' ' + {CHART!r})"
+    )
     expect(result_heading(app)).to_have_count(0)
-    watch_instant_preview(app)
+    assert watch_flip(app) is True
     analyze(app)
     expect(result_heading(app, "Positive")).to_be_visible()
-    expect(app.get_by_test_id("stVegaLiteChart")).to_be_visible()
-    assert app.evaluate("window.__instantSeen") is True
-    # The server render takes over: the preview is hidden and one result remains.
-    expect(app.get_by_test_id("instantResult")).to_be_hidden()
+    assert app.evaluate("window.__flipped") is True
+    # The submit run rendered into the same slot: no new chart, and the flip override is gone.
+    app.wait_for_function("!document.getElementById('rp-flip')")
+    assert buffered_chart_is_shown(app)
     expect(result_heading(app)).to_have_count(1)
     assert_no_app_exception(app)
 
 
-def test_edit_after_prefetch_gets_no_stale_preview(app: Page):
+def test_edit_after_prefetch_does_not_flip_a_stale_result(app: Page):
     type_review(app, synthetic.PROBES["Positive"])
     wait_for_prefetch(app, synthetic.PROBES["Positive"])
-    watch_instant_preview(app)
+    watch_flip(app)
     enter_review(app, synthetic.PROBES["Negative"])
     analyze(app)  # before the 1 s pause: no prefetch for this text yet
     expect(result_heading(app, "Negative")).to_be_visible()
-    assert app.evaluate("window.__instantSeen") is False
+    expect(result_heading(app)).to_have_count(1)
+    assert app.evaluate("window.__flipped") is False
     assert_no_app_exception(app)
 
 
@@ -270,9 +284,11 @@ def test_model_switch_prefetches_before_submit(page: Page, app_url_multi_model):
     choose_model(app, "b_flipped")
     wait_for_prefetch(app, text, "b_flipped")  # reported at once, without waiting for typing
     expect(result_heading(app)).to_have_count(0)
-    watch_instant_preview(app)
+    assert watch_flip(app) is True
     analyze(app)
     expect(result_heading(app, "Negative")).to_be_visible()
-    assert app.evaluate("window.__instantSeen") is True
+    assert app.evaluate("window.__flipped") is True
+    app.wait_for_function("!document.getElementById('rp-flip')")
+    assert buffered_chart_is_shown(app)
     expect(app.get_by_test_id("stSidebar").get_by_text("b_flipped.joblib")).to_be_visible()
     assert_no_app_exception(app)

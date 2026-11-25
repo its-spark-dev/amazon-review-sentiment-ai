@@ -15,7 +15,21 @@ import prefetch
 import synthetic
 
 pytestmark = pytest.mark.integration
+RESULT_SLOTS = ("result_a", "result_b")  # app.RESULT_SLOTS; importing app would run it
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def slot(at, which):
+    """The result slot block (``"front"`` is on screen, ``"back"`` is the hidden buffer)."""
+    front = at.session_state["front_slot"] if "front_slot" in at.session_state else 0
+    index = front if which == "front" else 1 - front
+    name = RESULT_SLOTS[index]
+    return next(b for b in at.main.children.values() if getattr(b.proto, "id", "").endswith(f"-{name}"))
+
+
+def shown(at, which="front"):
+    """Result headings in a slot; the back slot is hidden by CSS, which AppTest can't see."""
+    return [s.value for s in slot(at, which).subheader]
 
 
 def report(at, text, model=None):
@@ -29,7 +43,7 @@ def submit(at, text):
     at.text_area(key="review").input(text)
     at.button[-1].click().run()
     assert not at.exception
-    return [s.value for s in at.main.subheader]
+    return shown(at)
 
 
 @pytest.fixture
@@ -42,7 +56,8 @@ def test_report_prefetches_and_submit_reuses_it(model_file, app_test, counted_pr
     at = report(app_test(model_file), synthetic.PROBES["Positive"])
     assert not at.exception
     assert counted_predict.call_count == 1  # computed in the background, before any submit
-    assert at.main.subheader == []          # ...and nothing is shown yet
+    assert shown(at) == []                  # ...and nothing is shown yet
+    assert shown(at, "back") == ["Positive"]  # only rendered into the hidden back buffer
     assert submit(at, synthetic.PROBES["Positive"]) == ["Positive"]
     assert counted_predict.call_count == 1  # the submit reused the prefetched outcome
 
@@ -63,17 +78,17 @@ def test_prefetched_warning_matches_submit(model_file, app_test):
     at = report(app_test(model_file), "quuxzzblorb snarglexyz")
     at.text_area(key="review").input("quuxzzblorb snarglexyz")
     at.button[-1].click().run()
-    assert "No words in this review are recognized" in at.warning[0].value
-    assert at.main.subheader == []
+    assert "No words in this review are recognized" in slot(at, "front").warning[0].value
+    assert shown(at) == []
 
 
 def test_result_stays_through_watcher_reruns_until_another_action(model_file, app_test):
     at = app_test(model_file)
     assert submit(at, synthetic.PROBES["Positive"]) == ["Positive"]
     report(at, synthetic.PROBES["Positive"] + " more words")
-    assert [s.value for s in at.main.subheader] == ["Positive"]  # typing doesn't wipe the result
+    assert shown(at) == ["Positive"]  # typing doesn't wipe the result
     next(b for b in at.button if b.label == "Negative").click().run()
-    assert at.main.subheader == []  # a sample click still clears it, as before
+    assert shown(at) == []  # a sample click still clears it, as before
 
 
 def test_sample_click_prefetches_the_sample(model_file, app_test, counted_predict):
@@ -81,7 +96,7 @@ def test_sample_click_prefetches_the_sample(model_file, app_test, counted_predic
     next(b for b in at.button if b.label == "Positive").click().run()
     assert counted_predict.call_count == 1
     at.button[-1].click().run()
-    assert at.main.subheader[0].value == "Positive"
+    assert shown(at) == ["Positive"]
     assert counted_predict.call_count == 1
 
 
@@ -109,3 +124,18 @@ def test_model_switch_prefetches_on_the_newly_picked_model(tmp_path, monkeypatch
         assert at.session_state["prefetch_target"]["model"] == "b_flipped"
     finally:
         st.cache_resource.clear()
+
+
+def test_submit_renders_into_the_slot_that_held_the_buffer(model_file, app_test):
+    at = report(app_test(model_file), synthetic.PROBES["Positive"])
+    buffer_id = slot(at, "back").proto.id
+    assert submit(at, synthetic.PROBES["Positive"]) == ["Positive"]
+    # Same slot, same elements: the browser keeps the chart it already drew while hidden.
+    assert slot(at, "front").proto.id == buffer_id
+    assert shown(at, "back") == []
+
+    report(at, synthetic.PROBES["Negative"])
+    assert shown(at) == ["Positive"]           # the result on screen stays...
+    assert shown(at, "back") == ["Negative"]   # ...while the next one buffers behind it
+    assert submit(at, synthetic.PROBES["Negative"]) == ["Negative"]
+    assert slot(at, "back").proto.id == buffer_id  # the roles swapped back

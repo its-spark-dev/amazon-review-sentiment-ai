@@ -26,6 +26,7 @@ st.set_page_config(page_title="Amazon Review Sentiment AI")
 logger = logging.getLogger("sentiment.app")
 PREFETCH_WORKERS = 2
 READY_WAIT_S = 0.3  # how long a watcher rerun waits for its prefetch before the browser polls
+RESULT_SLOTS = ("result_a", "result_b")
 UNCALIBRATED = "Probabilities are uncalibrated model estimates. High values can still accompany incorrect predictions."
 
 SAMPLE_REVIEWS = {
@@ -86,6 +87,21 @@ def render(outcome: dict) -> None:
         chart = pd.DataFrame({"Probability": view["probs"]}, index=list(CLASS_LABELS))
         st.bar_chart(chart, horizontal=True)
         st.caption(view["breakdown"])
+
+
+def _slot_css(slot: str) -> str:
+    """Hide a result slot but keep it laid out at full width, so its chart still renders.
+
+    Its wrapper's negative margin cancels the flex gap a zero-height block would add,
+    and the watcher's own container (no visible content) is taken out of the flow.
+    """
+    return (
+        f".st-key-{slot} {{ visibility: hidden !important; height: 0 !important; "
+        "min-height: 0 !important; max-height: 0 !important; flex: none !important; "
+        "overflow: hidden !important; pointer-events: none !important; } "
+        f"[data-testid=stLayoutWrapper]:has(> .st-key-{slot}) {{ margin-bottom: -1rem !important; }} "
+        f".st-key-{form_watcher.KEY} {{ display: none !important; }}"
+    )
 
 
 def sidebar(path, count: int) -> None:
@@ -248,37 +264,60 @@ def main() -> None:
             use_container_width=True,
         )
 
-    # Prefetch what the form currently holds, so a submit (and the browser preview) is instant.
-    ready, waiting = None, False
+    # Prefetch what the form currently holds, so a submit is instant.
+    ready, waiting, buffered = None, False, None
     if target is not None and Path(target["path"]).is_file():
         key, future = _start_prefetch(Path(target["path"]), target["text"])
         if future is not None:
             if not future.done():
                 wait([future], timeout=READY_WAIT_S)
-            outcome = _store().done_outcome(key)
+            buffered = _store().done_outcome(key)
             waiting = not future.done()
-            if outcome is not None and "view" in outcome:
-                ready = {"text": target["text"], "model": target["model"], "view": outcome["view"]}
+            if buffered is not None:
+                ready = {"text": target["text"], "model": target["model"]}
 
+    # Double-buffered result: two slots that swap roles. The front slot shows the last
+    # submitted result; the back slot holds the prefetched result, rendered by the browser
+    # but hidden. A click flips the back slot visible at once (form_watcher), and the
+    # submit run then renders the same elements into that same slot, so nothing redraws.
+    front = st.session_state.get("front_slot", 0)
+    back = 1 - front
+    is_submit = bool(submitted and model is not None)
+    shown = None
+    if is_submit:
+        outcome = _submitted_outcome(selected, model, review)
+        shown = {"path": str(selected), "text": review, "outcome": outcome}
+        st.session_state["last_outcome"] = shown
+        front, back = back, front
+        st.session_state["front_slot"] = front
+        ready, buffered = None, None
+    else:
+        last = st.session_state.get("last_outcome")
+        if watch_rerun and last and last["path"] == str(selected):
+            shown = last  # typing after a result keeps it on screen
+        else:
+            st.session_state.pop("last_outcome", None)
+        if shown and ready and shown["text"] == target["text"] and shown["path"] == str(target["path"]):
+            ready, buffered = None, None  # already on screen: nothing to buffer
+
+    st.html(f"<style>{_slot_css(RESULT_SLOTS[back])}</style>")
     if paths:
         form_watcher.mount(
             data={
                 "ready": ready,
                 "waiting": waiting,
-                "submitted": bool(submitted and model is not None),
-                "labels": list(CLASS_LABELS),
+                "submitted": is_submit,
+                "front": RESULT_SLOTS[front],
+                "back": RESULT_SLOTS[back],
             },
             on_report=_mark_watch_rerun,
         )
-
-    if submitted and model is not None:
-        outcome = _submitted_outcome(selected, model, review)
-        st.session_state["last_outcome"] = (str(selected), outcome)
-        render(outcome)
-    elif watch_rerun and st.session_state.get("last_outcome", (None,))[0] == str(selected):
-        render(st.session_state["last_outcome"][1])  # typing after a result keeps it on screen
-    else:
-        st.session_state.pop("last_outcome", None)
+    for index, slot in enumerate(RESULT_SLOTS):
+        with st.container(key=slot):
+            if index == front and shown:
+                render(shown["outcome"])
+            elif index == back and buffered:
+                render(buffered)
 
 
 main()

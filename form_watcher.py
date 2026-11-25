@@ -1,4 +1,4 @@
-"""Invisible component that reports the review form's pending values and previews results.
+"""Invisible component that reports the review form's pending values and flips in results.
 
 Streamlit form widgets send nothing until the form is submitted, so the server
 can't see what the user is typing or which model they just picked. This
@@ -11,41 +11,21 @@ and reports them with ``setStateValue("pending", {text, model})``:
 
 Each report reruns the script, which starts a background prefetch. When the
 prefetch is still running, the script answers ``waiting`` and the component
-asks again with a short ``poll`` trigger. A finished outcome comes back as
+asks again with a short ``poll`` trigger. A finished outcome is rendered by the
+script into the hidden back result slot (double buffering: the browser lays out
+and draws it, chart included, without showing it) and announced as
 ``data.ready``. When Analyze is clicked (or Ctrl/Cmd+Enter is pressed in the
 review) and the form still holds exactly that text and model, the component
-shows the ready result at once while the normal submit rerun renders the real
-Streamlit elements, then hides it again. Nothing is shown before the click.
-
-The ready result is plain text set with ``textContent``, never HTML.
+flips the back slot into view at once. The submit run then renders the same
+elements into that same slot, and the override is removed. Nothing is shown
+before the click.
 """
 
 import streamlit as st
 
 KEY = "form_watch"
 
-_HTML = """
-<div class="rp-instant" data-testid="instantResult" hidden aria-live="polite">
-  <div class="rp-label"></div>
-  <div class="rp-metric"><span class="rp-metric-name">Predicted-class probability</span>
-    <span class="rp-metric-value"></span></div>
-  <div class="rp-bars"></div>
-  <div class="rp-breakdown"></div>
-</div>
-"""
-
-_CSS = """
-.rp-instant { font-family: inherit; color: inherit; }
-.rp-instant[hidden] { display: none; }
-.rp-label { font-size: 1.5rem; font-weight: 600; margin: 0.5rem 0; }
-.rp-metric-name { display: block; font-size: 0.875rem; opacity: 0.7; }
-.rp-metric-value { display: block; font-size: 2.25rem; line-height: 1.2; }
-.rp-bars { margin: 0.75rem 0; display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 0.75rem; }
-.rp-bar-name { font-size: 0.8rem; opacity: 0.8; }
-.rp-bar-track { align-self: center; height: 0.9rem; }
-.rp-bar-fill { height: 100%; background: #bb0000; border-radius: 2px; }
-.rp-breakdown { font-size: 0.875rem; opacity: 0.7; }
-"""
+_HTML = "<div hidden></div>"
 
 _JS = """
 const TEXT = 'textarea[aria-label="Review text"]';
@@ -76,7 +56,6 @@ function wire(w) {
   };
   document.addEventListener('input', (e) => {
     if (e.target.matches && e.target.matches(TEXT)) {
-      w.hide();
       clearTimeout(w.debounce);
       w.debounce = setTimeout(w.report, DEBOUNCE_MS);
     }
@@ -91,7 +70,6 @@ function wire(w) {
     const model = current().model;
     if (model !== w.model) {
       w.model = model;
-      w.hide();
       w.report();
     }
   }, MODEL_CHECK_MS);
@@ -103,28 +81,22 @@ function wire(w) {
   }, true);
 }
 
-function show(root, view, labels) {
-  root.querySelector('.rp-label').textContent = view.label;
-  const hasProbs = Array.isArray(view.probs);
-  root.querySelector('.rp-metric').hidden = !hasProbs;
-  root.querySelector('.rp-breakdown').textContent = view.breakdown || '';
-  const bars = root.querySelector('.rp-bars');
-  bars.replaceChildren();
-  if (hasProbs) {
-    root.querySelector('.rp-metric-value').textContent = view.metric;
-    view.probs.forEach((p, i) => {
-      const name = document.createElement('span');
-      name.className = 'rp-bar-name';
-      name.textContent = labels[i] || '';
-      const track = document.createElement('div');
-      track.className = 'rp-bar-track';
-      const fill = document.createElement('div');
-      fill.className = 'rp-bar-fill';
-      fill.style.width = `${Math.max(0, Math.min(1, p)) * 100}%`;
-      track.append(fill);
-      bars.append(name, track);
-    });
+// Flip the buffered back slot visible (and the front slot away) until the server's
+// submit render, which puts the same elements in that slot without hiding it.
+function flip(w, on) {
+  let style = document.getElementById('rp-flip');
+  if (!on) { if (style) style.remove(); return; }
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'rp-flip';
+    document.head.append(style);
   }
+  const back = w.data.back, front = w.data.front;
+  style.textContent =
+    `html body .st-key-${back} { visibility: visible !important; height: auto !important; max-height: none !important; ` +
+    `overflow: visible !important; pointer-events: auto !important; }` +
+    `html body [data-testid=stLayoutWrapper]:has(> .st-key-${back}) { margin-bottom: 0 !important; }` +
+    `html body .st-key-${front} { display: none !important; }`;
 }
 
 export default function (component) {
@@ -133,16 +105,10 @@ export default function (component) {
   w.setState = setStateValue;
   w.setTrigger = setTriggerValue;
   w.data = data;
-  w.root = parentElement;
-  w.box = () => w.root && w.root.querySelector('.rp-instant');
-  w.hide = () => { const box = w.box(); if (box) box.hidden = true; };
   w.reveal = () => {
     const ready = w.data && w.data.ready;
-    const box = w.box();
-    if (!box || !ready || !same(ready, current())) return;
-    show(w.root, ready.view, w.data.labels || []);
-    box.hidden = false;
-    w.revealedAt = performance.now();
+    if (!ready || !same(ready, current()) || !/^[a-z_]+$/.test(w.data.back + w.data.front)) return;
+    flip(w, true);
   };
   // A rerun requested while the submit's run is executing would interrupt it and drop the
   // submit, so stay quiet from the click until the server's submit render arrives.
@@ -159,9 +125,12 @@ export default function (component) {
     w.wired = true;
     wire(w);
   }
-  // The server rendered its own result this run (or the form moved on): drop the preview.
-  if (data.submitted || !same(data.ready, current())) w.hide();
-  if (data.submitted) { w.submitting = false; clearTimeout(w.quietTimer); }
+  // The server rendered the result into the flipped slot this run: the override can go.
+  if (data.submitted) {
+    w.submitting = false;
+    clearTimeout(w.quietTimer);
+    requestAnimationFrame(() => flip(w, false));
+  }
 
   clearTimeout(w.pollTimer);
   if (data.waiting && w.polls < MAX_POLLS && !w.submitting) {
@@ -175,7 +144,7 @@ export default function (component) {
 """
 
 _component = st.components.v2.component(
-    "review_form_watcher", html=_HTML, css=_CSS, js=_JS, isolate_styles=False
+    "review_form_watcher", html=_HTML, js=_JS, isolate_styles=False
 )
 
 
