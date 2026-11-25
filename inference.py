@@ -40,6 +40,28 @@ _CHUNK = 1 << 20
 
 logger = logging.getLogger(__name__)
 
+# Files already hashed this process: str(path) -> (file identity, expected sha256).
+# The app calls ensure_models_release on every rerun; an unchanged file skips re-hashing.
+_verified: dict[str, tuple] = {}
+
+
+def _identity(path: Path) -> tuple:
+    stat = path.stat()
+    return (stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size, stat.st_ino)
+
+
+def _matches(path: Path, expected: str) -> bool:
+    """Whether ``path`` holds ``expected``; trusts an earlier check while the file is unchanged."""
+    if not path.is_file():
+        return False
+    identity = _identity(path)
+    if _verified.get(str(path)) == (identity, expected):
+        return True
+    if _sha256(path) != expected:
+        return False
+    _verified[str(path)] = (identity, expected)
+    return True
+
 
 def model_path() -> Path:
     """Return the configured model path (env override, else the default)."""
@@ -187,11 +209,12 @@ def ensure_models_release(
         target = model_dir / name
         url = RELEASE_URL.format(tag=urllib.parse.quote(tag, safe=""), name=name)
         try:
-            if target.is_file() and _sha256(target) == expected:
+            if _matches(target, expected):
                 logger.debug("Model release %s: %s already verified", tag, name)
             else:
                 logger.info("Model release %s: downloading %s", tag, name)
                 _download_verified(url, target, expected, timeout)
+                _verified[str(target)] = (_identity(target), expected)
         except (OSError, ValueError) as exc:
             logger.error("Model release %s: failed to prepare %s from %s: %s", tag, name, url, exc)
             raise

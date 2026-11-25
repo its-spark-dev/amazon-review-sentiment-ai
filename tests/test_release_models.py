@@ -83,6 +83,26 @@ class EnsureModelsReleaseTests(unittest.TestCase):
         self.assertEqual(fake.urls, [])
         self.assertEqual({n: (self.model_dir / n).stat().st_mtime_ns for n in PAYLOADS}, before)
 
+    def test_unchanged_verified_files_are_not_rehashed(self):
+        self.run_ensure()  # downloads and records both files as verified
+        with mock.patch.object(inference, "_sha256", wraps=inference._sha256) as hasher:
+            _, fake = self.run_ensure(responses={})
+        self.assertEqual(fake.urls, [])
+        hasher.assert_not_called()
+
+    def test_changed_file_is_rehashed_and_replaced(self):
+        self.run_ensure()
+        target = self.model_dir / "b.joblib"
+        original = target.stat()
+        target.write_bytes(b"tampered bytes of equal-ish size")
+        # Even a restored mtime must not keep trusting the earlier check (ctime/size change).
+        os.utime(target, ns=(original.st_atime_ns, original.st_mtime_ns))
+        with mock.patch.object(inference, "_sha256", wraps=inference._sha256) as hasher:
+            _, fake = self.run_ensure()
+        self.assertEqual(fake.urls, [url("b.joblib")])
+        self.assertEqual(target.read_bytes(), PAYLOADS["b.joblib"])
+        self.assertEqual([c.args[0].name for c in hasher.call_args_list], ["b.joblib"])
+
     def test_replaces_only_the_file_with_a_wrong_hash(self):
         self.model_dir.mkdir()
         (self.model_dir / "a.joblib").write_bytes(PAYLOADS["a.joblib"])
