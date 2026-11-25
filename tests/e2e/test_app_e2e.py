@@ -115,6 +115,77 @@ def test_unrecognized_input_withholds_prediction_and_can_recover(app: Page, text
     assert_no_app_exception(app)
 
 
+# --- Background prefetch and instant preview ----------------------------------------------------
+
+READY = "window.__reviewPrefetch && window.__reviewPrefetch.data && window.__reviewPrefetch.data.ready"
+
+
+def wait_for_prefetch(page: Page, text: str, model: str | None = None):
+    """Wait until the server pushed a finished prefetch for exactly this form state."""
+    page.wait_for_function(
+        f"({READY}) && {READY}.text === {text!r}" + (f" && {READY}.model === {model!r}" if model else ""),
+        timeout=10_000,
+    )
+
+
+def watch_instant_preview(page: Page):
+    """Record whether the instant preview ever became visible from now on."""
+    page.evaluate("""() => {
+        window.__instantSeen = false;
+        new MutationObserver(() => {
+            const box = document.querySelector('[data-testid=instantResult]');
+            if (box && !box.hidden) window.__instantSeen = true;
+        }).observe(document.body, {subtree: true, childList: true, attributes: true});
+    }""")
+
+
+def type_review(page: Page, text: str):
+    box = page.get_by_role("textbox", name="Review text")
+    box.click()
+    box.fill(text)  # fires an input event, like typing, and is not submitted
+    return box
+
+
+def test_pause_prefetches_silently_and_click_shows_result_instantly(app: Page):
+    text = synthetic.PROBES["Positive"]
+    type_review(app, text)
+    wait_for_prefetch(app, text)
+    # The prediction is ready in the page but nothing is shown until Analyze.
+    expect(app.get_by_test_id("instantResult")).to_be_hidden()
+    expect(result_heading(app)).to_have_count(0)
+    watch_instant_preview(app)
+    analyze(app)
+    expect(result_heading(app, "Positive")).to_be_visible()
+    expect(app.get_by_test_id("stVegaLiteChart")).to_be_visible()
+    assert app.evaluate("window.__instantSeen") is True
+    # The server render takes over: the preview is hidden and one result remains.
+    expect(app.get_by_test_id("instantResult")).to_be_hidden()
+    expect(result_heading(app)).to_have_count(1)
+    assert_no_app_exception(app)
+
+
+def test_edit_after_prefetch_gets_no_stale_preview(app: Page):
+    type_review(app, synthetic.PROBES["Positive"])
+    wait_for_prefetch(app, synthetic.PROBES["Positive"])
+    watch_instant_preview(app)
+    enter_review(app, synthetic.PROBES["Negative"])
+    analyze(app)  # before the 1 s pause: no prefetch for this text yet
+    expect(result_heading(app, "Negative")).to_be_visible()
+    assert app.evaluate("window.__instantSeen") is False
+    assert_no_app_exception(app)
+
+
+def test_result_stays_visible_while_typing_more(app: Page):
+    enter_review(app, synthetic.PROBES["Positive"])
+    analyze(app)
+    expect(result_heading(app, "Positive")).to_be_visible()
+    text = synthetic.PROBES["Positive"] + " and more"
+    type_review(app, text)
+    wait_for_prefetch(app, text)  # the watcher rerun has happened
+    expect(result_heading(app, "Positive")).to_be_visible()
+    assert_no_app_exception(app)
+
+
 # --- Model selection (several .joblib files in the models directory) ---------------------------
 
 
@@ -188,4 +259,20 @@ def test_recommended_model_defaults_and_user_choice_persists(page: Page, app_url
     expect(app.get_by_role("combobox", name="Model")).to_have_value("bow_lr")
     analyze(app)
     expect(sidebar.get_by_text("bow_lr.joblib")).to_be_visible()
+    assert_no_app_exception(app)
+
+
+def test_model_switch_prefetches_before_submit(page: Page, app_url_multi_model):
+    app = open_multi(page, app_url_multi_model)
+    text = synthetic.PROBES["Positive"]
+    type_review(app, text)
+    wait_for_prefetch(app, text, "sentiment_pipeline")
+    choose_model(app, "b_flipped")
+    wait_for_prefetch(app, text, "b_flipped")  # reported at once, without waiting for typing
+    expect(result_heading(app)).to_have_count(0)
+    watch_instant_preview(app)
+    analyze(app)
+    expect(result_heading(app, "Negative")).to_be_visible()
+    assert app.evaluate("window.__instantSeen") is True
+    expect(app.get_by_test_id("stSidebar").get_by_text("b_flipped.joblib")).to_be_visible()
     assert_no_app_exception(app)
