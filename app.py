@@ -273,10 +273,10 @@ def main() -> None:
 
     if submitted and model is not None:
         outcome = _submitted_outcome(selected, model, review)
-        st.session_state["last_outcome"] = outcome
+        st.session_state["last_outcome"] = (str(selected), outcome)
         render(outcome)
-    elif watch_rerun and "last_outcome" in st.session_state:
-        render(st.session_state["last_outcome"])  # typing after a result keeps it on screen
+    elif watch_rerun and st.session_state.get("last_outcome", (None,))[0] == str(selected):
+        render(st.session_state["last_outcome"][1])  # typing after a result keeps it on screen
     else:
         st.session_state.pop("last_outcome", None)
 

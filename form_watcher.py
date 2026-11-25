@@ -55,6 +55,7 @@ const DEBOUNCE_MS = 1000;
 const MODEL_CHECK_MS = 250;
 const POLL_MS = 300;
 const MAX_POLLS = 40;
+const QUIET_MAX_MS = 5000;
 
 function current() {
   const text = document.querySelector(TEXT);
@@ -69,6 +70,7 @@ function same(a, b) {
 function wire(w) {
   w.report = () => {
     clearTimeout(w.debounce);
+    if (w.submitting) return;
     w.polls = 0;
     w.setState('pending', current());
   };
@@ -80,6 +82,8 @@ function wire(w) {
     }
   }, true);
   w.model = current().model;
+  // Text typed before this script loaded raised no event we saw: treat it as fresh typing.
+  if (current().text.trim()) w.debounce = setTimeout(w.report, DEBOUNCE_MS);
   setInterval(() => {
     const box = document.querySelector(MODEL);
     // While the list is open the input holds the type-to-filter text, not a choice.
@@ -92,10 +96,10 @@ function wire(w) {
     }
   }, MODEL_CHECK_MS);
   document.addEventListener('click', (e) => {
-    if (e.target.closest && e.target.closest(SUBMIT)) w.reveal();
+    if (e.target.closest && e.target.closest(SUBMIT)) w.onSubmit();
   }, true);
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.matches && e.target.matches(TEXT)) w.reveal();
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.matches && e.target.matches(TEXT)) w.onSubmit();
   }, true);
 }
 
@@ -140,16 +144,32 @@ export default function (component) {
     box.hidden = false;
     w.revealedAt = performance.now();
   };
+  // A rerun requested while the submit's run is executing would interrupt it and drop the
+  // submit, so stay quiet from the click until the server's submit render arrives.
+  w.onSubmit = () => {
+    w.submitting = true;
+    clearTimeout(w.debounce);
+    clearTimeout(w.pollTimer);
+    clearTimeout(w.quietTimer);
+    w.quietTimer = setTimeout(() => { w.submitting = false; }, QUIET_MAX_MS);
+    w.model = current().model;  // the submit carries this choice; don't report it again
+    w.reveal();
+  };
   if (!w.wired) {
     w.wired = true;
     wire(w);
   }
   // The server rendered its own result this run (or the form moved on): drop the preview.
   if (data.submitted || !same(data.ready, current())) w.hide();
+  if (data.submitted) { w.submitting = false; clearTimeout(w.quietTimer); }
 
   clearTimeout(w.pollTimer);
-  if (data.waiting && w.polls < MAX_POLLS) {
-    w.pollTimer = setTimeout(() => { w.polls += 1; w.setTrigger('poll', w.polls); }, POLL_MS);
+  if (data.waiting && w.polls < MAX_POLLS && !w.submitting) {
+    w.pollTimer = setTimeout(() => {
+      if (w.submitting) return;
+      w.polls += 1;
+      w.setTrigger('poll', w.polls);
+    }, POLL_MS);
   }
 }
 """
