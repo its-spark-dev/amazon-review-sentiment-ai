@@ -1,11 +1,15 @@
 """Streamlit app: enter an Amazon food review and get a three-class sentiment."""
 
+from concurrent.futures import wait
+import logging
 import os
 from pathlib import Path
+import time
 
 import pandas as pd
 import streamlit as st
 
+import form_watcher
 from inference import (
     MAX_REVIEW_CHARS,
     MODELS_DIR,
@@ -13,11 +17,16 @@ from inference import (
     ensure_models_release,
     load_model,
     model_paths,
-    predict_review,
 )
 from ml_baseline import CLASS_LABELS
+from prefetch import PrefetchStore, evaluate, file_version
 
 st.set_page_config(page_title="Amazon Review Sentiment AI")
+
+logger = logging.getLogger("sentiment.app")
+PREFETCH_WORKERS = 2
+READY_WAIT_S = 0.3  # how long a watcher rerun waits for its prefetch before the browser polls
+UNCALIBRATED = "Probabilities are uncalibrated model estimates. High values can still accompany incorrect predictions."
 
 SAMPLE_REVIEWS = {
     "Positive": "These cookies are fantastic. Fresh, crunchy, and my kids love them. Will buy again!",
@@ -26,14 +35,57 @@ SAMPLE_REVIEWS = {
 }
 
 
-@st.cache_resource(show_spinner="Loading model…")
+@st.cache_resource(show_spinner=False)
 def get_model(path: str, file_version: tuple):
     """Cache an existing artifact by path and filesystem version.
 
     file_version deliberately participates in Streamlit's cache key, so normal
     writes and atomic replacements invalidate the previous model resource.
+    The prefetch thread calls this too, so it never shows a spinner itself;
+    the script shows one around a load that is not known to be warm.
     """
-    return load_model(path)
+    model = load_model(path)
+    _warm_models().add((path, file_version))
+    return model
+
+
+@st.cache_resource
+def _warm_models() -> set:
+    """Keys get_model has loaded; cleared with the cache it describes."""
+    return set()
+
+
+@st.cache_resource
+def _executor():
+    from concurrent.futures import ThreadPoolExecutor
+
+    return ThreadPoolExecutor(max_workers=PREFETCH_WORKERS, thread_name_prefix="prefetch")
+
+
+def _prepare(path: str, version: tuple, text: str) -> dict:
+    """Background job: load (or reuse) the model and compute the outcome to render."""
+    return evaluate(get_model(path, version), text)
+
+
+def _store() -> PrefetchStore:
+    if "prefetch" not in st.session_state:
+        st.session_state["prefetch"] = PrefetchStore(_executor())
+    return st.session_state["prefetch"]
+
+
+def render(outcome: dict) -> None:
+    """Show a prediction outcome: the warning, or the label, probability, chart and breakdown."""
+    if "warning" in outcome:
+        st.warning(outcome["warning"])
+        return
+    view = outcome["view"]
+    st.subheader(view["label"])
+    if view["probs"] is not None:
+        st.metric("Predicted-class probability", view["metric"])
+        st.caption(UNCALIBRATED)
+        chart = pd.DataFrame({"Probability": view["probs"]}, index=list(CLASS_LABELS))
+        st.bar_chart(chart, horizontal=True)
+        st.caption(view["breakdown"])
 
 
 def sidebar(path, count: int) -> None:
@@ -57,12 +109,51 @@ def load_selected(path):
         # Check outside the cache: a missing artifact must not cache None.
         if not path.is_file():
             return None
-        stat = path.stat()
-        version = (stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size, stat.st_ino)
-        return get_model(str(path.resolve()), version)
+        key = (str(path.resolve()), file_version(path))
+        if key in _warm_models():
+            return get_model(*key)
+        with st.spinner("Loading model…"):
+            return get_model(*key)
     except Exception as exc:  # corrupt or incompatible artifact
         st.error(f"Could not load the model `{path.name}`: {exc}")
         return None
+
+
+def _mark_watch_rerun() -> None:
+    st.session_state["_watch_rerun"] = True
+
+
+def _start_prefetch(path: Path, text: str):
+    """Start (or find) the prefetch for ``text`` on ``path``; return its key and Future."""
+    try:
+        version = file_version(path)
+    except OSError:
+        return None, None
+    store = _store()
+    key = store.key(path, version, text)
+    resolved = key[0]
+    return key, store.submit(key, lambda: _prepare(resolved, version, text))
+
+
+def _submitted_outcome(selected: Path, model, review: str) -> dict:
+    """The outcome for a submit: the prefetched one when it matches, else computed now."""
+    started = time.perf_counter()
+    source = "computed"
+    try:
+        future = _store().get(_store().key(selected, file_version(selected), review))
+    except OSError:
+        future = None
+    outcome = None
+    if future is not None:
+        try:
+            outcome = future.result()
+            source = "prefetched" if future.done() else "awaited"
+        except Exception:  # load failed in the background; the foreground path reports it
+            outcome = None
+    if outcome is None:
+        outcome = evaluate(model, review)
+    logger.debug("submit outcome %s in %.1f ms", source, (time.perf_counter() - started) * 1000)
+    return outcome
 
 
 def main() -> None:
@@ -104,11 +195,35 @@ def main() -> None:
             "in `models/` (or set `SENTIMENT_MODEL_PATH`) to enable predictions."
         )
 
+    watch_rerun = st.session_state.pop("_watch_rerun", False)
+    has_selector = len(paths) > 1
+    by_stem = {p.stem: p for p in paths}
+
+    def target_for(text: str, model_value):
+        """Where a prefetch for the form's pending values should run, or None if unknown."""
+        if not has_selector:
+            return {"path": selected, "model": None, "text": text}
+        model_value = model_value if model_value is not None else selected.stem
+        path = by_stem.get(model_value)
+        return {"path": path, "model": model_value, "text": text} if path else None
+
+    target = None
+    pending = form_watcher.pending() if watch_rerun else None
+    if pending is not None and selected is not None:
+        st.session_state["pending_model"] = pending["model"]
+        target = target_for(pending["text"], pending["model"])
+
     st.write("Try a sample:")
     cols = st.columns(len(SAMPLE_REVIEWS))
     for col, (name, text) in zip(cols, SAMPLE_REVIEWS.items()):
         if col.button(name, use_container_width=True):
             st.session_state["review"] = text
+            if selected is not None:
+                target = target_for(text, st.session_state.get("pending_model"))
+
+    if target is not None:
+        st.session_state["prefetch_target"] = target
+    target = st.session_state.get("prefetch_target")
 
     with st.form("review_form"):
         review = st.text_area(
@@ -118,7 +233,7 @@ def main() -> None:
             max_chars=MAX_REVIEW_CHARS,
             placeholder="Paste or type a product review…",
         )
-        if len(paths) > 1:
+        if has_selector:
             left, right = st.columns([2, 1], vertical_alignment="bottom")
             left.selectbox("Model", options, key="model_choice", format_func=lambda p: Path(p).stem)
         else:
@@ -133,27 +248,37 @@ def main() -> None:
             use_container_width=True,
         )
 
-    if not submitted or model is None:
-        return
+    # Prefetch what the form currently holds, so a submit (and the browser preview) is instant.
+    ready, waiting = None, False
+    if target is not None and Path(target["path"]).is_file():
+        key, future = _start_prefetch(Path(target["path"]), target["text"])
+        if future is not None:
+            if not future.done():
+                wait([future], timeout=READY_WAIT_S)
+            outcome = _store().done_outcome(key)
+            waiting = not future.done()
+            if outcome is not None and "view" in outcome:
+                ready = {"text": target["text"], "model": target["model"], "view": outcome["view"]}
 
-    try:
-        result = predict_review(model, review)
-    except ValueError as exc:
-        st.warning(str(exc))
-        return
-
-    label = result["label"]
-    st.subheader(label)
-    probs = result["probabilities"]
-    if probs:
-        st.metric("Predicted-class probability", f"{probs[label]:.1%}" if label in probs else "—")
-        st.caption(
-            "Probabilities are uncalibrated model estimates. "
-            "High values can still accompany incorrect predictions."
+    if paths:
+        form_watcher.mount(
+            data={
+                "ready": ready,
+                "waiting": waiting,
+                "submitted": bool(submitted and model is not None),
+                "labels": list(CLASS_LABELS),
+            },
+            on_report=_mark_watch_rerun,
         )
-        chart = pd.DataFrame({"Probability": [probs[c] for c in CLASS_LABELS]}, index=list(CLASS_LABELS))
-        st.bar_chart(chart, horizontal=True)
-        st.caption(" · ".join(f"{c}: {probs[c]:.1%}" for c in CLASS_LABELS))
+
+    if submitted and model is not None:
+        outcome = _submitted_outcome(selected, model, review)
+        st.session_state["last_outcome"] = outcome
+        render(outcome)
+    elif watch_rerun and "last_outcome" in st.session_state:
+        render(st.session_state["last_outcome"])  # typing after a result keeps it on screen
+    else:
+        st.session_state.pop("last_outcome", None)
 
 
 main()
