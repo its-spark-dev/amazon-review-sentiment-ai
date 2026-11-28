@@ -2,13 +2,22 @@
 
 Obtain the dataset from the [Amazon Fine Food Reviews page on Kaggle](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews), published by SNAP. Review the dataset description and usage terms on the source page before using it.
 
+Kaggle designates the dataset **CC0: Public Domain**, verified through its
+[official metadata API](https://www.kaggle.com/api/v1/datasets/view/snap/amazon-fine-food-reviews)
+on November 24, 2026. Reviews and local sampled/cleaned/split CSVs are excluded
+from this project's MIT grant. Dataset files remain local under repository policy.
+See [licensing and attribution](../docs/LICENSING.md) for the CC0 terms, research
+citation and distinction from MIT-licensed processing code and model artifacts.
+
 ## Local download (when needed)
 
 1. Open the source page and sign in to Kaggle if prompted.
 2. Download the dataset manually and extract the archive locally.
 3. Place the extracted `Reviews.csv` at `data/Reviews.csv`.
 
-The Streamlit placeholder and synthetic ML tests do not require any data. This repository does not download the dataset automatically, and no dataset is tracked. Preparation scripts are versioned in `scripts/`;
+The release-backed Streamlit demo and synthetic ML tests do not require the dataset.
+The demo downloads approved model artifacts, not reviews. This repository does not
+download the dataset automatically, and no dataset is tracked. Preparation scripts are versioned in `scripts/`;
 raw and generated CSV files belong in `data/`. Run preparation commands from
 the repository root.
 
@@ -47,8 +56,9 @@ policy, and reproducible split details before real-data fitting. Ratings 1–2
 map to Negative, 3 to Neutral, and 4–5 to Positive; ratings provide the target,
 not a feature for the current text baseline. Fit vocabulary and IDF only on
 training text, then transform held-out text. Cleaning and the split are
-implemented by the scripts below; any additional validation protocol is not
-implemented in this repository.
+implemented by the scripts below. M3 adds a training-only grouped validation
+partition, documented in [M3 training](../docs/M3_TRAINING.md), while preserving
+the existing outer train/test files.
 
 ### Preparation commands
 
@@ -126,5 +136,5 @@ training file only.
 
 - Keep downloaded archives, raw data, and processed datasets local. The root `.gitignore` excludes the contents of `data/` except this guide.
 - Never commit Kaggle credentials, API tokens, or other secrets. No Kaggle API setup is required for the scaffold.
-- Record preprocessing, the agreed sentiment mapping, split details, and data quality decisions in the project notebooks and report. The mapping, cleaning rules, and 80/20 split are documented above; handoff details still need confirmation.
+- Record preprocessing, the agreed sentiment mapping, split details, and data quality decisions in the project report. The shared CSV interface, hashes and measured run provenance are documented in the M2/M3 results; coordinate any future changes rather than silently replacing those files.
 - Share the source link and reproducible processing instructions with contributors instead of committing the dataset.

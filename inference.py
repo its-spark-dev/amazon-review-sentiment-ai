@@ -22,6 +22,8 @@ import urllib.parse
 import urllib.request
 
 import joblib
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
 
 from ml_baseline import CLASS_LABELS
@@ -37,6 +39,28 @@ _SHA256_RE = re.compile(r"[0-9a-f]{64}")
 _CHUNK = 1 << 20
 
 logger = logging.getLogger(__name__)
+
+# Files already hashed this process: str(path) -> (file identity, expected sha256).
+# The app calls ensure_models_release on every rerun; an unchanged file skips re-hashing.
+_verified: dict[str, tuple] = {}
+
+
+def _identity(path: Path) -> tuple:
+    stat = path.stat()
+    return (stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size, stat.st_ino)
+
+
+def _matches(path: Path, expected: str) -> bool:
+    """Whether ``path`` holds ``expected``; trusts an earlier check while the file is unchanged."""
+    if not path.is_file():
+        return False
+    identity = _identity(path)
+    if _verified.get(str(path)) == (identity, expected):
+        return True
+    if _sha256(path) != expected:
+        return False
+    _verified[str(path)] = (identity, expected)
+    return True
 
 
 def model_path() -> Path:
@@ -84,12 +108,22 @@ def predict_review(model, text: str) -> dict:
 
     Returns ``{"label": str, "probabilities": {label: float} | None}``.
     Probabilities follow ``CLASS_LABELS`` order and are None if the model
-    does not expose ``predict_proba``.
+    does not expose ``predict_proba``. For BoW/TF-IDF pipelines, raises
+    ValueError before classification if no vocabulary features are recognized.
+    This checks the fitted vocabulary, not the input's language or reliability.
     """
     text = validate_review(text)
     text = clean_text(text)
     if not text:
         raise ValueError("Enter a review containing text after HTML cleanup.")
+    # TfidfVectorizer inherits CountVectorizer. Transform only: never fit or
+    # change the release pipeline when checking a single review.
+    if isinstance(model, Pipeline) and isinstance(model.steps[0][1], CountVectorizer):
+        if model.steps[0][1].transform([text]).nnz == 0:
+            raise ValueError(
+                "No words in this review are recognized by the selected model. "
+                "Try an English food review with more detail."
+            )
     label = str(model.predict([text])[0])
     probabilities = None
     if hasattr(model, "predict_proba"):
@@ -155,7 +189,9 @@ def ensure_models_release(
 
     Files whose SHA-256 already matches the manifest are reused; anything missing
     or different is downloaded from the release, verified and atomically swapped
-    in. Failures are logged with the filename, then raised as ``ValueError`` (bad
+    in. A file already verified by this process is not re-hashed while its
+    modification time, change time, size and inode are unchanged; any change to
+    those triggers a full re-check. Failures are logged with the filename, then raised as ``ValueError`` (bad
     tag, manifest or hash) or ``OSError`` (filesystem or network).
     """
     try:
@@ -175,11 +211,12 @@ def ensure_models_release(
         target = model_dir / name
         url = RELEASE_URL.format(tag=urllib.parse.quote(tag, safe=""), name=name)
         try:
-            if target.is_file() and _sha256(target) == expected:
+            if _matches(target, expected):
                 logger.debug("Model release %s: %s already verified", tag, name)
             else:
                 logger.info("Model release %s: downloading %s", tag, name)
                 _download_verified(url, target, expected, timeout)
+                _verified[str(target)] = (_identity(target), expected)
         except (OSError, ValueError) as exc:
             logger.error("Model release %s: failed to prepare %s from %s: %s", tag, name, url, exc)
             raise

@@ -1,8 +1,9 @@
 # M3 report and demonstration — canonical release v0.2.0-rc2
 
-Updated November 23, 2026. This replaces the November 15 M3 experimental results
+Canonical results updated November 23, 2026; main deployment verification updated
+November 24. This replaces the November 15 M3 experimental results
 for report/demo parity. It is not confirmation of final PDF submission. Hosted
-staging validation is recorded at the end of this document.
+main and staging validation is recorded at the end of this document.
 All current tables, timings, loss records and five model artifacts below belong
 to ONE deterministic re-execution. M2 results remain unchanged in their own doc.
 Machine-readable source: [M3_RELEASE.json](M3_RELEASE.json).
@@ -186,6 +187,53 @@ Both local and release inference now apply the SAME HTML/entity/whitespace/lower
 cleaner as data preparation, then reject inputs empty after cleaning. Models expect
 cleaned Text; Summary and rating are not features.
 
+## Hosted main status
+
+**Latest verification: November 24, 2026 (EST)** after
+[PR #23](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/23)
+merged into main at `9a29272`. The app was fully rebooted: automatic code refresh
+had shown the new UI while retaining the previous zero-feature inference
+behavior; the reboot resolved that observed mismatch. No model tag, weights,
+training settings or reported test results changed.
+
+| Hosted check | November 24 result |
+| --- | --- |
+| New-session default | `tfidf_lr`, with the rc2 recommendation visible |
+| Probability display | Predicted-class probability, one decimal, explicit uncalibrated-estimate explanation |
+| Positive/negative probes | 10 passed: two synthetic reviews per model; labels and displayed probabilities match canonical local rc2 |
+| Zero-feature input | 15 passed: emoji-only, Korean and unseen-token probes for each of five models; no label/probability displayed |
+| Recovery after rejection | Five passed: a recognized review produces a result again for each model |
+| Existing validation | Empty and HTML/whitespace-only input rejection passed |
+
+The check covered model switching across all five pipelines. The vocabulary
+guard does not establish language detection, out-of-domain detection or calibrated
+uncertainty. These are serving checks, not new held-out performance estimates.
+The underlying artifacts remain `v0.2.0-rc2`, served on Python 3.11.18.
+
+Current public screenshots: [TF-IDF LR prediction](assets/demo.jpg) and
+[zero-feature input guard](assets/input-guard.jpg). The prediction example shows
+98.6% Positive probability, with the explicit reliability limitation. The detailed
+synthetic check log remains local at `outputs/m3/main-serving-fix/validation.json`;
+it is not required to run the app. Main's post-merge CI passed all six jobs.
+
+### Initial main deployment (November 23)
+
+The [main app](https://amazon-sentiment-ai.streamlit.app/) was deployed from
+`main` after [PR #19](https://github.com/its-spark-dev/amazon-review-sentiment-ai/pull/19)
+passed all six CI checks and merged at `216720c`. Its runtime is Python 3.11.18,
+with the pinned root `requirements.txt` and `MODELS_VERSION_TAG="v0.2.0-rc2"`.
+The separate staging deployment was retained.
+
+After a full reboot, 14 hosted checks passed on November 23, 2026 (EST;
+verification log timestamp: November 24, 00:22 UTC). Each of the five models
+produced the expected positive/negative labels and displayed probabilities
+matching staging and the canonical local rc2 models. HTML/plain-text parity,
+markup-only rejection, and empty-input rejection also passed. A screenshot of
+the main app's TF-IDF LR positive prediction and the verification log were saved
+locally at that time; the current public captures above supersede that screenshot.
+These synthetic checks validate deployment and
+inference behavior, not new held-out performance results or retraining.
+
 ## Hosted staging status
 
 The [staging app](https://amazon-sentiment-ai-preview.streamlit.app/) was verified
@@ -203,6 +251,7 @@ app were captured locally: TF-IDF LR predicting Positive and TF-IDF MLP predicti
 Negative. Screenshots and validation logs are not committed.
 
 The team must still include those screenshots in the 4–6 page PDF and confirm
-individual progress logs and submission. Production deployment from `main` is
-not confirmed. AI assisted implementation and these draft notes; final
+individual progress logs and submission. Main deployment verification is complete
+as recorded above; final PDF submission is not confirmed. AI assisted
+implementation and these draft notes; final
 interpretation and report writing should be checked and owned by the team.

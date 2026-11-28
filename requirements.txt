@@ -1,5 +1,5 @@
 # Runtime dependencies for the Streamlit app (Python 3.11) and the ML scripts.
-# Exact pins: the release models (models/release_manifest.json, v0.1.0-rc1) were
+# Exact pins: the current v0.2.0-rc2 models in models/release_manifest.json were
 # pickled with scikit-learn 1.9.1 and verified to load and predict with this set.
 # Unpickling depends on scikit-learn, numpy, scipy and joblib, so re-verify the
 # models (or retrain and cut a new release) before changing any of those four.

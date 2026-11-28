@@ -12,6 +12,7 @@ from streamlit.testing.v1 import AppTest
 
 from inference import load_model, model_paths, predict_review, validate_review
 from ml_baseline import CLASS_LABELS, create_nb_pipeline
+from scripts.clean_reviews import clean_text
 
 ROOT = Path(__file__).resolve().parents[1]
 TEXTS = ["great tasty love", "awful stale bad", "okay fine average",
@@ -34,6 +35,37 @@ class InferenceTests(unittest.TestCase):
         for bad in ("", "   ", None, "x" * 5001):
             with self.subTest(bad=bad if bad is None else len(bad)), self.assertRaises(ValueError):
                 validate_review(bad)
+
+    def test_zero_features_are_rejected_before_classification(self):
+        for representation in ("bow", "tfidf"):
+            model = create_nb_pipeline(representation).fit(TEXTS, LABELS)
+            classifier = model[-1]
+            with mock.patch.object(classifier, "predict") as predict, \
+                    mock.patch.object(classifier, "predict_proba") as predict_proba:
+                for text in ("🍪🍪🍪", "이 음식은 맛있어요", "quuxzzblorb snarglexyz", "!!!", "<b>🍪</b>"):
+                    with self.subTest(representation=representation, text=text), \
+                            self.assertRaisesRegex(ValueError, "No words.*recognized"):
+                        predict_review(model, text)
+                predict.assert_not_called()
+                predict_proba.assert_not_called()
+
+    def test_known_features_keep_predictions_and_fitted_state(self):
+        raw = " <b>GREAT</b> &amp; tasty 🍪 quuxzzblorb "
+        for representation in ("bow", "tfidf"):
+            with self.subTest(representation=representation):
+                model = create_nb_pipeline(representation).fit(TEXTS, LABELS)
+                vectorizer = model[0]
+                vocabulary = vectorizer.vocabulary_.copy()
+                idf = vectorizer.idf_.tolist() if representation == "tfidf" else None
+                cleaned = [clean_text(raw)]
+                expected_label = model.predict(cleaned)[0]
+                expected_probs = dict(zip(model.classes_, model.predict_proba(cleaned)[0]))
+                result = predict_review(model, raw)
+                self.assertEqual(result["label"], expected_label)
+                self.assertEqual(result["probabilities"], expected_probs)
+                self.assertEqual(vectorizer.vocabulary_, vocabulary)
+                if idf is not None:
+                    self.assertEqual(vectorizer.idf_.tolist(), idf)
 
     def test_missing_model_returns_none(self):
         self.assertIsNone(load_model(Path(tempfile.gettempdir()) / "no_such_model.joblib"))
@@ -219,6 +251,51 @@ class ModelSelectionTests(unittest.TestCase):
         self.assertEqual(at.selectbox(key="model_choice").value, str(self.root / "a.joblib"))
         self.assertFalse(at.button[-1].disabled)
 
+    def test_recommended_model_is_selected_on_first_render(self):
+        joblib.dump(fitted_model(), self.root / "bow_lr.joblib")
+        flipped = [{"Positive": "Negative", "Negative": "Positive"}.get(c, c) for c in LABELS]
+        joblib.dump(create_nb_pipeline("tfidf").fit(TEXTS, flipped), self.root / "tfidf_lr.joblib")
+        at = self.run_app()
+        self.assertEqual(at.selectbox(key="model_choice").value, str(self.root / "tfidf_lr.joblib"))
+        self.assertIn(f"`{self.root / 'tfidf_lr.joblib'}`", [c.value for c in at.sidebar.caption])
+        self.assertIn("Negative", self.predict(at, "great tasty love"))
+
+    def test_added_recommendation_keeps_existing_valid_choice(self):
+        for name in ("a.joblib", "b.joblib"):
+            joblib.dump(fitted_model(), self.root / name)
+        at = self.run_app()
+        at.selectbox(key="model_choice").select(str(self.root / "b.joblib"))
+        self.predict(at, "great tasty love")
+        joblib.dump(fitted_model(), self.root / "tfidf_lr.joblib")
+        at.run()
+        self.assertEqual(at.selectbox(key="model_choice").value, str(self.root / "b.joblib"))
+
+    def test_removed_selection_falls_back_to_recommendation(self):
+        for name in ("a.joblib", "b.joblib", "tfidf_lr.joblib"):
+            joblib.dump(fitted_model(), self.root / name)
+        at = self.run_app()
+        at.selectbox(key="model_choice").select(str(self.root / "b.joblib"))
+        self.predict(at, "great tasty love")
+        (self.root / "b.joblib").unlink()
+        at.run()
+        self.assertFalse(at.exception)
+        self.assertEqual(at.selectbox(key="model_choice").value, str(self.root / "tfidf_lr.joblib"))
+
+    def test_input_guard_uses_selected_models_vocabulary(self):
+        joblib.dump(fitted_model(), self.root / "a.joblib")
+        other = create_nb_pipeline("bow").fit(
+            ["splendid excellent", "horrible terrible", "regular ordinary"],
+            ["Positive", "Negative", "Neutral"])
+        joblib.dump(other, self.root / "b.joblib")
+        at = self.run_app()
+        self.assertIn("Positive", self.predict(at, "great tasty love"))
+        at.selectbox(key="model_choice").select(str(self.root / "b.joblib"))
+        self.assertEqual(self.predict(at, "great tasty love"), [])
+        self.assertIn("No words", at.warning[0].value)
+        self.assertFalse(at.main.metric)
+        self.assertIn("Positive", self.predict(at, "splendid excellent"))
+        self.assertFalse(at.warning)
+
     def test_sidebar_shows_selected_model_and_count(self):
         for name in ("sentiment_pipeline.joblib", "other.joblib"):
             joblib.dump(fitted_model(), self.root / name)
@@ -281,7 +358,7 @@ class ModelSelectionTests(unittest.TestCase):
                              ["a.joblib", "b.joblib"])
 
     def test_model_path_override_hides_selector(self):
-        for name in ("a.joblib", "b.joblib"):
+        for name in ("a.joblib", "b.joblib", "tfidf_lr.joblib"):
             joblib.dump(fitted_model(), self.root / name)
         os.environ["SENTIMENT_MODEL_PATH"] = str(self.root / "b.joblib")  # restored by patch.dict
         at = self.run_app()

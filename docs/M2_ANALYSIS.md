@@ -28,7 +28,7 @@ python -m m2_analysis --synthetic-demo --output-dir outputs/m2/another-demo
 
 `matplotlib` is the only added dependency and generates PNGs without a GUI.
 
-## In-memory interface for the eventual data handoff
+## In-memory interface
 
 ```python
 from m2_analysis import run_baselines, export_results
@@ -95,9 +95,10 @@ nor causal effects, and they describe the fitted model, not every prediction.
 
 Outputs include review text and must stay local: use the ignored `outputs/m2/`
 folder. Custom output paths are not automatically ignored. Never commit real
-reviews or generated results inadvertently. For M2, the Data Engineer and ML
-Engineer must still agree on the cleaned-text interface, split, and shared
-feature definitions. The initial real-data metrics, feature lists, and ten inspected errors are
+reviews or generated results inadvertently. The shared cleaned-text interface,
+split and feature definitions are recorded in the data guide and M2 results;
+coordinate future changes between Data and ML rather than replacing them silently.
+The initial real-data metrics, feature lists, and ten inspected errors are
 now recorded in [M2 results](M2_BASELINE_RESULTS.md); final report writing remains
 a team responsibility.
 

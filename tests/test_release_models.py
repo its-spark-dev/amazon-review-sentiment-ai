@@ -83,6 +83,26 @@ class EnsureModelsReleaseTests(unittest.TestCase):
         self.assertEqual(fake.urls, [])
         self.assertEqual({n: (self.model_dir / n).stat().st_mtime_ns for n in PAYLOADS}, before)
 
+    def test_unchanged_verified_files_are_not_rehashed(self):
+        self.run_ensure()  # downloads and records both files as verified
+        with mock.patch.object(inference, "_sha256", wraps=inference._sha256) as hasher:
+            _, fake = self.run_ensure(responses={})
+        self.assertEqual(fake.urls, [])
+        hasher.assert_not_called()
+
+    def test_changed_file_is_rehashed_and_replaced(self):
+        self.run_ensure()
+        target = self.model_dir / "b.joblib"
+        original = target.stat()
+        target.write_bytes(b"tampered bytes of equal-ish size")
+        # Even a restored mtime must not keep trusting the earlier check (ctime/size change).
+        os.utime(target, ns=(original.st_atime_ns, original.st_mtime_ns))
+        with mock.patch.object(inference, "_sha256", wraps=inference._sha256) as hasher:
+            _, fake = self.run_ensure()
+        self.assertEqual(fake.urls, [url("b.joblib")])
+        self.assertEqual(target.read_bytes(), PAYLOADS["b.joblib"])
+        self.assertEqual([c.args[0].name for c in hasher.call_args_list], ["b.joblib"])
+
     def test_replaces_only_the_file_with_a_wrong_hash(self):
         self.model_dir.mkdir()
         (self.model_dir / "a.joblib").write_bytes(PAYLOADS["a.joblib"])
@@ -191,7 +211,8 @@ class AppReleaseWiringTests(unittest.TestCase):
         with mock.patch("inference.ensure_models_release", side_effect=OSError("boom")) as ensure:
             at = self.run_app(env)
         ensure.assert_called_once_with(REPORT_MODEL_RELEASE, Path(self.model_dir))
-        self.assertEqual([e.value for e in at.error], ["Failed to prepare staging models"])
+        self.assertEqual([e.value for e in at.error],
+                         ["Could not prepare the release models. Please try again later."])
         self.assertEqual(len(at.title), 0)  # st.stop() before the rest of the page
 
     def test_success_renders_page(self):
@@ -226,6 +247,8 @@ class AppReleaseWiringTests(unittest.TestCase):
         self.assertFalse(at.exception)
         self.assertFalse(at.error)
         self.assertEqual(at.selectbox(key='model_choice').options, ['bow_nb', 'tfidf_lr'])
+        self.assertEqual(at.selectbox(key='model_choice').value, str(root / 'tfidf_lr.joblib'))
+        self.assertTrue(any('Recommended rc2 model: tfidf_lr' in c.value for c in at.main.caption))
 
     def test_not_called_without_tag(self):
         env = {"SENTIMENT_MODEL_DIR": self.model_dir}
