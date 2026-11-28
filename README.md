@@ -54,7 +54,8 @@ check, not language or out-of-domain detection.*
 - **Instant results:** about 1 s after typing stops, or as soon as another model is
   picked, the app predicts in the background and renders the result hidden in the
   page, chart included. **Analyze sentiment** then reveals it without waiting for
-  the server; a click before anything is ready is computed as usual.
+  the server; a click before anything is ready is computed as usual. See the
+  [design and response-time benchmarks](docs/perf/INSTANT_RESULTS.md).
 - **Automated checks:** synthetic unit, integration and browser tests; CI also
   checks lint, dependencies and tracked-file hygiene. Test success is not model-quality evidence.
 
